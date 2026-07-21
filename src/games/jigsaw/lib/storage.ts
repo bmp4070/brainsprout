@@ -1,0 +1,58 @@
+import type { DifficultyId } from './types';
+
+export interface BestRecord {
+  bestMs: number;
+  plays: number;
+}
+
+function storageKey(sceneId: string, difficultyId: DifficultyId): string {
+  return `riddler:jigsaw:best:${sceneId}:${difficultyId}`;
+}
+
+function isBestRecord(value: unknown): value is BestRecord {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.bestMs === 'number' &&
+    Number.isFinite(record.bestMs) &&
+    typeof record.plays === 'number' &&
+    Number.isFinite(record.plays)
+  );
+}
+
+/** Reads the best-time record for a scene/difficulty pair, or null if absent/corrupt. */
+export function getBest(sceneId: string, difficultyId: DifficultyId): BestRecord | null {
+  try {
+    const raw = localStorage.getItem(storageKey(sceneId, difficultyId));
+    if (raw === null) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return isBestRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Records a completed play's time, updating the best time only if `ms` is lower.
+ * Always increments the play count. Safe no-op (with best-effort return value)
+ * if localStorage is unavailable or corrupt.
+ */
+export function recordResult(
+  sceneId: string,
+  difficultyId: DifficultyId,
+  ms: number,
+): { best: BestRecord; isNewBest: boolean } {
+  const existing = getBest(sceneId, difficultyId);
+  const plays = (existing?.plays ?? 0) + 1;
+  const isNewBest = existing === null || ms < existing.bestMs;
+  const bestMs = isNewBest ? ms : existing.bestMs;
+  const best: BestRecord = { bestMs, plays };
+
+  try {
+    localStorage.setItem(storageKey(sceneId, difficultyId), JSON.stringify(best));
+  } catch {
+    // Ignore write failures (e.g. storage disabled/full); still return computed value.
+  }
+
+  return { best, isNewBest };
+}

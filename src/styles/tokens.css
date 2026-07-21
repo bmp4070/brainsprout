@@ -1,0 +1,59 @@
+/* Design tokens: bright, kid-friendly palette and shared sizing. */
+:root {
+  /* Core palette */
+  --color-bg: #fff8ec;
+  --color-bg-alt: #ffffff;
+  --color-primary: #7c4dff;
+  --color-primary-dark: #5e35d6;
+  --color-primary-light: #b39dff;
+  --color-accent: #ff8a3d;
+  --color-accent-dark: #f26a1b;
+  --color-secondary: #26c6da;
+  --color-secondary-dark: #0e9cb0;
+
+  --color-text: #2c2340;
+  --color-text-muted: #6b6178;
+  --color-border: #eadfcf;
+
+  --color-success: #4caf50;
+  --color-danger: #ef5350;
+
+  /* Vivid highlight colors for found words / game accents */
+  --word-color-0: #ff6b6b;
+  --word-color-1: #ffb84d;
+  --word-color-2: #ffe66d;
+  --word-color-3: #4ecdc4;
+  --word-color-4: #6a89ff;
+  --word-color-5: #d97bff;
+
+  /* Shape & spacing */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  --shadow-sm: 0 2px 6px rgba(44, 35, 64, 0.08);
+  --shadow-md: 0 6px 16px rgba(44, 35, 64, 0.14);
+  --shadow-lg: 0 12px 28px rgba(44, 35, 64, 0.18);
+
+  /* Typography */
+  --font-family: 'Baloo 2', 'Comic Sans MS', 'Segoe UI Rounded', system-ui,
+    -apple-system, 'Nunito', sans-serif;
+  --font-size-base: 20px;
+  --font-size-lg: 26px;
+  --font-size-xl: 34px;
+  --font-size-2xl: 48px;
+
+  --touch-target-min: 44px;
+
+  --transition-fast: 120ms ease;
+  --transition-med: 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}

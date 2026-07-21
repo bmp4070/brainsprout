@@ -1,0 +1,48 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  text-decoration: none;
+  color: var(--color-text);
+  background: var(--color-bg-alt);
+  border: 3px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  min-height: 220px;
+  min-width: 44px;
+  box-shadow: var(--shadow-md);
+  transition:
+    transform var(--transition-med),
+    box-shadow var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.card:hover {
+  transform: translateY(-4px) scale(1.04);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary-light);
+}
+
+.card:active {
+  transform: scale(0.97);
+}
+
+.emoji {
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.title {
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  margin: 0;
+  text-align: center;
+}
+
+.description {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: 0;
+}

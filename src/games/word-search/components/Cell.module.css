@@ -1,0 +1,43 @@
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(14px, 3.2vmin, 28px);
+  font-weight: 800;
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: var(--color-bg-alt);
+  border-radius: var(--radius-sm);
+  user-select: none;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
+  position: relative;
+}
+
+.selected {
+  background: var(--color-primary-light);
+  color: var(--color-text);
+  transform: scale(1.05);
+}
+
+.found {
+  color: #fff;
+}
+
+.hint {
+  animation: pulse 0.7s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(124, 77, 255, 0.5);
+  }
+  50% {
+    transform: scale(1.18);
+    box-shadow: 0 0 12px rgba(124, 77, 255, 0.7);
+  }
+}

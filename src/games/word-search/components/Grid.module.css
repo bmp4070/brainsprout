@@ -1,0 +1,23 @@
+.frame {
+  width: min(92vw, 62vh, 640px);
+  margin: 0 auto;
+  padding: var(--space-sm);
+  background: var(--color-bg-alt);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+/*
+ * The grid element itself must be exactly the cell area (no padding):
+ * useDragSelection's pointer math and SelectionOverlay's viewBox both map
+ * this element's border box to grid coordinates.
+ */
+.grid {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  aspect-ratio: 1;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}

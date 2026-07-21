@@ -1,0 +1,39 @@
+.outer {
+  position: relative;
+  width: min(92vw, 640px);
+  margin: 0 auto;
+}
+
+.board {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--color-bg-alt);
+  border: 3px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.ghost {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.gridlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tray {
+  position: relative;
+  margin-top: var(--space-md);
+  background: rgba(255, 255, 255, 0.4);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+}
