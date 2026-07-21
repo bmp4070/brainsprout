@@ -1,0 +1,11 @@
+// Cloudflare Workers static-assets config: `wrangler deploy` uploads the
+// prerendered `dist` directory as-is. With this file present, wrangler's
+// auto-configuration (which rewrites the Vite build) never runs.
+{
+  "name": "brainsprout",
+  "compatibility_date": "2026-07-21",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
