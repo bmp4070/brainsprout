@@ -7,6 +7,8 @@ import { useJigsaw } from './hooks/useJigsaw';
 import { recordResult } from './lib/storage';
 import type { DifficultyConfig } from './lib/types';
 import { pieceCount } from './lib/types';
+import { trayModeForWidth } from './lib/trayLayout';
+import type { TrayMode } from './lib/trayLayout';
 import { getNextScene, advanceScene } from './scenes/rotation';
 import { sceneToDataUri } from './scenes';
 import type { JigsawScene } from './scenes';
@@ -81,7 +83,15 @@ export default function JigsawGame() {
       setUpNextScene(following);
       setHintActive(false);
       setIntroActive(difficulty.id !== 'easy');
-      start(difficulty, sceneToPlay);
+      // Match PlayArea's measurement: its container is the page minus the
+      // horizontal padding (--space-md each side), so measure the same width
+      // here or START and the first paint can disagree in a ~32px band.
+      const PAGE_H_PADDING = 32;
+      const trayMode: TrayMode =
+        typeof window === 'undefined'
+          ? 'below'
+          : trayModeForWidth(window.innerWidth - PAGE_H_PADDING);
+      start(difficulty, sceneToPlay, trayMode);
     },
     [start, upNextScene],
   );
@@ -134,6 +144,13 @@ export default function JigsawGame() {
     [dispatch],
   );
 
+  const handleTrayModeChange = useCallback(
+    (trayMode: TrayMode) => {
+      dispatch({ type: 'RELAYOUT', trayMode });
+    },
+    [dispatch],
+  );
+
   if (state.phase === 'picking' || !state.difficulty || !state.layout || !state.positions) {
     return (
       <>
@@ -180,6 +197,8 @@ export default function JigsawGame() {
         dragging={state.dragging}
         backgroundUri={backgroundUri}
         showGhost={isEasy || hintActive || introActive}
+        trayMode={state.trayMode ?? 'below'}
+        onTrayModeChange={handleTrayModeChange}
         onPickUp={handlePickUp}
         onMove={handleMove}
         onDrop={handleDrop}

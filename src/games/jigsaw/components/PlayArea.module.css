@@ -1,13 +1,14 @@
+.measure {
+  width: 100%;
+}
+
 .outer {
   position: relative;
-  width: min(92vw, 640px);
   margin: 0 auto;
 }
 
 .board {
   position: relative;
-  width: 100%;
-  aspect-ratio: 4 / 3;
   background: var(--color-bg-alt);
   border: 3px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -31,9 +32,8 @@
 }
 
 .tray {
-  position: relative;
-  margin-top: var(--space-md);
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.45);
   border: 2px dashed var(--color-border);
   border-radius: var(--radius-lg);
+  pointer-events: none;
 }

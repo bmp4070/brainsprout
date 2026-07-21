@@ -4,7 +4,8 @@ import type { PieceLayout } from '../lib/pieces';
 import { shufflePositions } from '../lib/shuffle';
 import type { DifficultyConfig } from '../lib/types';
 import { pieceCount } from '../lib/types';
-import { TRAY_HEIGHT_FRAC, TRAY_TOP_FRAC } from '../lib/trayLayout';
+import { getTrayRect } from '../lib/trayLayout';
+import type { TrayMode } from '../lib/trayLayout';
 import type { JigsawScene } from '../scenes';
 
 export interface PiecePosition {
@@ -14,6 +15,10 @@ export interface PiecePosition {
   yFrac: number;
   rotation: number;
   locked: boolean;
+  /** Stacking order among unlocked pieces: higher renders on top. Bumped
+   * whenever the piece is picked up, so the pile always digs to the most
+   * recently touched piece. */
+  zOrder: number;
 }
 
 export interface JigsawState {
@@ -27,6 +32,10 @@ export interface JigsawState {
   lockedCount: number;
   startTime: number;
   elapsedMs: number;
+  /** Whether the tray sits below the board or beside it; null until started. */
+  trayMode: TrayMode | null;
+  /** Next value to hand out for `zOrder` on pickup; always increasing. */
+  nextZOrder: number;
 }
 
 export type Action =
@@ -36,6 +45,7 @@ export type Action =
       scene: JigsawScene;
       seed: number;
       now: number;
+      trayMode: TrayMode;
     }
   | { type: 'PICK_UP'; row: number; col: number }
   | { type: 'MOVE'; row: number; col: number; xFrac: number; yFrac: number }
@@ -48,7 +58,8 @@ export type Action =
       snapped: boolean;
     }
   | { type: 'TICK'; now: number }
-  | { type: 'RESET' };
+  | { type: 'RESET' }
+  | { type: 'RELAYOUT'; trayMode: TrayMode };
 
 export const initialState: JigsawState = {
   phase: 'picking',
@@ -60,7 +71,16 @@ export const initialState: JigsawState = {
   lockedCount: 0,
   startTime: 0,
   elapsedMs: 0,
+  trayMode: null,
+  nextZOrder: 0,
 };
+
+/** Linearly remaps `v` from the `[a0, a1]` range into `[b0, b1]`, clamped. */
+function remapClamped(v: number, a0: number, a1: number, b0: number, b1: number): number {
+  const t = a1 === a0 ? 0.5 : (v - a0) / (a1 - a0);
+  const clamped = Math.min(Math.max(t, 0), 1);
+  return b0 + clamped * (b1 - b0);
+}
 
 /** A piece's home-slot position, as a fraction of the board's width/height. */
 function targetFrac(row: number, col: number, difficulty: DifficultyConfig): { xFrac: number; yFrac: number } {
@@ -73,20 +93,22 @@ export function reducer(state: JigsawState, action: Action): JigsawState {
     case 'START': {
       const layout = generatePieceLayout(action.difficulty.rows, action.difficulty.cols, action.seed);
       const count = pieceCount(action.difficulty);
-      const scattered = shufflePositions(count, action.seed);
+      const trayRect = getTrayRect(action.trayMode);
+      const scattered = shufflePositions(count, action.seed, trayRect);
       const positions: PiecePosition[][] = [];
       let i = 0;
       for (let r = 0; r < action.difficulty.rows; r++) {
         const row: PiecePosition[] = [];
         for (let c = 0; c < action.difficulty.cols; c++) {
           const s = scattered[i];
-          i++;
           row.push({
-            xFrac: 0.03 + s.xFrac * 0.85,
-            yFrac: TRAY_TOP_FRAC + s.yFrac * TRAY_HEIGHT_FRAC,
+            xFrac: s.xFrac,
+            yFrac: s.yFrac,
             rotation: s.rotation,
             locked: false,
+            zOrder: i,
           });
+          i++;
         }
         positions.push(row);
       }
@@ -100,6 +122,8 @@ export function reducer(state: JigsawState, action: Action): JigsawState {
         lockedCount: 0,
         startTime: action.now,
         elapsedMs: 0,
+        trayMode: action.trayMode,
+        nextZOrder: count,
       };
     }
 
@@ -108,8 +132,14 @@ export function reducer(state: JigsawState, action: Action): JigsawState {
       const piece = state.positions[action.row]?.[action.col];
       if (!piece || piece.locked) return state;
       const positions = state.positions.map((row) => row.slice());
-      positions[action.row][action.col] = { ...piece, rotation: 0 };
-      return { ...state, positions, dragging: { row: action.row, col: action.col } };
+      const nextZOrder = state.nextZOrder + 1;
+      positions[action.row][action.col] = { ...piece, rotation: 0, zOrder: nextZOrder };
+      return {
+        ...state,
+        positions,
+        dragging: { row: action.row, col: action.col },
+        nextZOrder,
+      };
     }
 
     case 'MOVE': {
@@ -143,6 +173,7 @@ export function reducer(state: JigsawState, action: Action): JigsawState {
           yFrac: target.yFrac,
           rotation: 0,
           locked: true,
+          zOrder: piece.zOrder,
         };
         const lockedCount = state.lockedCount + 1;
         const total = pieceCount(state.difficulty);
@@ -167,6 +198,35 @@ export function reducer(state: JigsawState, action: Action): JigsawState {
 
     case 'RESET': {
       return initialState;
+    }
+
+    case 'RELAYOUT': {
+      if (state.phase !== 'playing' || !state.positions || !state.trayMode) return state;
+      if (state.trayMode === action.trayMode) return state;
+      const oldRect = getTrayRect(state.trayMode);
+      const newRect = getTrayRect(action.trayMode);
+      // Only pieces actually resting in the old tray move to the new tray;
+      // pieces a player has parked on the board stay where they were put.
+      const inOldTray = (p: { xFrac: number; yFrac: number }) =>
+        p.xFrac >= oldRect.x0 - 0.05 &&
+        p.xFrac <= oldRect.x1 + 0.05 &&
+        p.yFrac >= oldRect.y0 - 0.05 &&
+        p.yFrac <= oldRect.y1 + 0.05 &&
+        // The tray never overlaps the board, so anything fully inside the
+        // board region is "on the board" even if it grazes the tray margin.
+        (p.xFrac > 1 || p.yFrac > 1);
+      const positions = state.positions.map((row) =>
+        row.map((piece) =>
+          piece.locked || !inOldTray(piece)
+            ? piece
+            : {
+                ...piece,
+                xFrac: remapClamped(piece.xFrac, oldRect.x0, oldRect.x1, newRect.x0, newRect.x1),
+                yFrac: remapClamped(piece.yFrac, oldRect.y0, oldRect.y1, newRect.y0, newRect.y1),
+              },
+        ),
+      );
+      return { ...state, positions, trayMode: action.trayMode };
     }
 
     default: {
@@ -195,8 +255,8 @@ export function useJigsaw() {
   }, [state.phase]);
 
   const start = useCallback(
-    (difficulty: DifficultyConfig, scene: JigsawScene, seed: number = Date.now()) => {
-      dispatch({ type: 'START', difficulty, scene, seed, now: Date.now() });
+    (difficulty: DifficultyConfig, scene: JigsawScene, trayMode: TrayMode, seed: number = Date.now()) => {
+      dispatch({ type: 'START', difficulty, scene, seed, now: Date.now(), trayMode });
     },
     [],
   );

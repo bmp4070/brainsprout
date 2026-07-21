@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import type { PointerEvent as ReactPointerEvent, RefObject } from 'react';
 import { buildPiecePath } from '../lib/pieces';
-import { TRAY_BOTTOM_FRAC } from '../lib/trayLayout';
+import type { FracRect } from '../lib/trayLayout';
 import type { PieceDef } from '../lib/pieces';
 import { ensureAudioReady, playFound, playTick } from '../../../shared/audio/sounds';
 import styles from './PieceView.module.css';
@@ -22,6 +22,8 @@ export interface PieceViewProps {
   cols: number;
   rows: number;
   backgroundUri: string;
+  /** The current layout's valid drop region (board ∪ tray), in board-fraction space. */
+  playRect: FracRect;
   containerRef: RefObject<HTMLElement | null>;
   onPickUp: (row: number, col: number) => void;
   onMove: (row: number, col: number, xFrac: number, yFrac: number) => void;
@@ -46,6 +48,7 @@ export default function PieceView({
   cols,
   rows,
   backgroundUri,
+  playRect,
   containerRef,
   onPickUp,
   onMove,
@@ -120,10 +123,12 @@ export default function PieceView({
     }
     // Keep unsnapped drops inside the board + tray area so a flung piece
     // can't land over the HUD or off-page where it's hard to grab back.
-    const maxX = 1 - cellW / boardW;
-    const maxY = TRAY_BOTTOM_FRAC - cellH / boardH;
-    const xFrac = Math.min(Math.max(next.xFrac, 0), maxX);
-    const yFrac = Math.min(Math.max(next.yFrac, 0), maxY);
+    const minX = playRect.x0;
+    const maxX = playRect.x1 - cellW / boardW;
+    const minY = playRect.y0;
+    const maxY = playRect.y1 - cellH / boardH;
+    const xFrac = Math.min(Math.max(next.xFrac, minX), maxX);
+    const yFrac = Math.min(Math.max(next.yFrac, minY), maxY);
     onDrop(row, col, xFrac, yFrac, snapped);
   };
 
