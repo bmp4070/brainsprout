@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import BigButton from '../../../shared/components/BigButton';
 import { playFanfare, playFound } from '../../../shared/audio/sounds';
@@ -28,6 +28,11 @@ export default function CelebrationOverlay({
   onNewRoute,
   onHome,
 }: CelebrationOverlayProps) {
+  // Collapsed = sheet dismissed so the kid can study the map (and the
+  // optimal-route overlay) unobstructed; a floating pill reopens it. Local
+  // state on purpose: the component stays mounted while collapsed, so the
+  // one-shot celebration guard below isn't re-triggered on reopen.
+  const [collapsed, setCollapsed] = useState(false);
   const celebratedRef = useRef(false);
   useEffect(() => {
     // Guard against StrictMode's dev-only double effect invocation so the
@@ -50,8 +55,29 @@ export default function CelebrationOverlay({
     playFound();
   }, [result.stars]);
 
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        className={styles.reopenPill}
+        onClick={() => setCollapsed(false)}
+        aria-label="Show route results"
+      >
+        ⭐ Results
+      </button>
+    );
+  }
+
   return (
-    <div className={styles.panel} role="dialog" aria-modal="true" aria-label="Route results">
+    <div className={styles.panel} role="dialog" aria-label="Route results">
+      <button
+        type="button"
+        className={styles.closeButton}
+        onClick={() => setCollapsed(true)}
+        aria-label="Close results and view the map"
+      >
+        ✕
+      </button>
       <div className={styles.starRow} aria-hidden="true">
         {[1, 2, 3].map((n) => (
           <span key={n} className={n <= result.stars ? styles.starFilled : styles.starDim}>
