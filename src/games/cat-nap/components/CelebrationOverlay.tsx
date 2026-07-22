@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import BigButton from '../../../shared/components/BigButton';
 import { playFanfare } from '../../../shared/audio/sounds';
@@ -32,6 +32,10 @@ export default function CelebrationOverlay({
   onPlayAgain,
   onHome,
 }: CelebrationOverlayProps) {
+  // Dismissed = card out of the way so the kid can admire the solved board;
+  // a floating pill reopens it. Local state keeps the component mounted, so
+  // the one-shot celebration guard isn't re-triggered on reopen.
+  const [collapsed, setCollapsed] = useState(false);
   const celebratedRef = useRef(false);
   useEffect(() => {
     // Guard against StrictMode's dev-only double effect invocation so the
@@ -48,9 +52,30 @@ export default function CelebrationOverlay({
     return () => clearTimeout(timeout);
   }, []);
 
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        className={styles.reopenPill}
+        onClick={() => setCollapsed(false)}
+        aria-label="Show results"
+      >
+        ⭐ Results
+      </button>
+    );
+  }
+
   return (
-    <div className={styles.overlay} role="dialog" aria-modal="true">
+    <div className={styles.overlay} role="dialog">
       <div className={styles.card}>
+        <button
+          type="button"
+          className={styles.closeButton}
+          onClick={() => setCollapsed(true)}
+          aria-label="Close results and view the solved board"
+        >
+          ✕
+        </button>
         <div className={styles.catRow} aria-hidden="true">
           {Array.from({ length: catCount }, (_, variant) => (
             <CatSprite key={variant} variant={variant} size={32} />
