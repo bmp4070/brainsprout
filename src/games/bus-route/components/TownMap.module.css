@@ -1,0 +1,18 @@
+.wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.svg {
+  width: min(92vw, 62vh, 560px);
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  background: #d7ecc4;
+  touch-action: manipulation;
+}
+
+.tapTarget {
+  cursor: pointer;
+}

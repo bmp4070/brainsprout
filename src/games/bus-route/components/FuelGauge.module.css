@@ -1,0 +1,28 @@
+.gauge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-alt);
+  box-shadow: var(--shadow-sm);
+}
+
+.bar {
+  font-family: monospace, var(--font-family);
+  letter-spacing: 1px;
+}
+
+.good {
+  color: var(--color-success);
+}
+
+.warn {
+  color: var(--color-accent-dark);
+}
+
+.low {
+  color: var(--color-danger);
+}

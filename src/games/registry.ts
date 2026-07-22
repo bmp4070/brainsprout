@@ -43,4 +43,12 @@ export const games: GameMeta[] = [
     description: 'Tuck a sleepy cat into every color — no touching, no sharing rows!',
     Component: lazy(() => import('./cat-nap/CatNapGame')),
   },
+  {
+    id: 'bus-route',
+    title: 'School Bus Route',
+    emoji: '🚌',
+    path: '/games/bus-route',
+    description: 'Plan the shortest bus route — pick up every kid and get back to school!',
+    Component: lazy(() => import('./bus-route/BusRouteGame')),
+  },
 ];

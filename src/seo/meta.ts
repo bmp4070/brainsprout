@@ -47,6 +47,12 @@ const STATIC_META: Record<string, PageMeta> = {
       'Free online logic puzzle for kids ages 5 to 11. Place a napping cat in every colored region with no two cats sharing a row, column, or touching corner.',
     canonicalPath: '/games/cat-nap',
   },
+  '/games/bus-route': {
+    title: 'School Bus Route — Free Routing Game for Kids',
+    description:
+      'Free online routing game for kids ages 5 to 11. Plan the shortest school bus route to pick up every kid and get back to school, then earn up to 3 stars.',
+    canonicalPath: '/games/bus-route',
+  },
 };
 
 /** Hand-written, unique per-theme descriptions (kid-facing, character names help search). */
