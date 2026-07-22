@@ -1,7 +1,7 @@
 // Prerenders every route in the app to static HTML under dist/, for
 // crawlers (and for a snappy first paint) once hosted on Cloudflare Pages.
 //
-// Approach for game routes (/games/word-search, /games/jigsaw): these pages
+// Approach for game routes (/games/word-search, /games/jigsaw, /games/row-row): these pages
 // derive their first-paint state (which theme/scene is "up next", whether
 // sound is muted) from localStorage, which differs between the server (no
 // localStorage -> always the same default) and a real visitor's browser.
@@ -25,7 +25,12 @@ const rootDir = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..')
 const distDir = path.join(rootDir, 'dist');
 const ssrDir = path.join(rootDir, 'dist-ssr');
 
-const GAME_ROUTES = new Set(['/games/word-search', '/games/jigsaw']);
+const GAME_ROUTES = new Set([
+  '/games/word-search',
+  '/games/jigsaw',
+  '/games/row-row',
+  '/games/cat-nap',
+]);
 
 async function loadSsrEntry() {
   const candidates = ['entry-server.js', 'entry-server.mjs'];
@@ -128,18 +133,17 @@ async function main() {
     if (GAME_ROUTES.has(route)) {
       // Lightweight path: no full React SSR (see module docstring above).
       const meta = getMetaForPath(route);
-      const schema =
-        route === '/games/word-search'
-          ? gameSchema({
-              name: 'BrainSprout Word Search',
-              description: meta.description,
-              path: route,
-            })
-          : gameSchema({
-              name: 'BrainSprout Jigsaw Puzzle',
-              description: meta.description,
-              path: route,
-            });
+      const gameNames = {
+        '/games/word-search': 'BrainSprout Word Search',
+        '/games/jigsaw': 'BrainSprout Jigsaw Puzzle',
+        '/games/row-row': 'BrainSprout Row Row',
+        '/games/cat-nap': 'BrainSprout Cat Nap',
+      };
+      const schema = gameSchema({
+        name: gameNames[route] ?? 'BrainSprout Game',
+        description: meta.description,
+        path: route,
+      });
       let html = replaceHead(template, meta, canonicalUrl);
       const seoSnippet = [
         '    <div id="seo-content">',

@@ -8,7 +8,14 @@ import { themes } from '../games/word-search/themes';
  * registry.
  */
 export function getStaticRoutes(): string[] {
-  return ['/', '/parents', '/games/word-search', '/games/jigsaw'];
+  return [
+    '/',
+    '/parents',
+    '/games/word-search',
+    '/games/jigsaw',
+    '/games/row-row',
+    '/games/cat-nap',
+  ];
 }
 
 export function getThemeRoutes(): string[] {

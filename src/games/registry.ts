@@ -27,4 +27,20 @@ export const games: GameMeta[] = [
     description: 'Drag and drop pieces to complete a colorful picture!',
     Component: lazy(() => import('./jigsaw/JigsawGame')),
   },
+  {
+    id: 'row-row',
+    title: 'Row Row',
+    emoji: '🚣',
+    path: '/games/row-row',
+    description: 'Row your Viking boat to the goal — but only when the drums are beating!',
+    Component: lazy(() => import('./row-row/RowRowGame')),
+  },
+  {
+    id: 'cat-nap',
+    title: 'Cat Nap',
+    emoji: '🐱',
+    path: '/games/cat-nap',
+    description: 'Tuck a sleepy cat into every color — no touching, no sharing rows!',
+    Component: lazy(() => import('./cat-nap/CatNapGame')),
+  },
 ];

@@ -1,0 +1,22 @@
+.frame {
+  width: min(92vw, 62vh, 560px);
+  margin: 0 auto;
+  padding: var(--space-sm);
+  background: var(--color-bg-alt);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+/*
+ * The grid element itself must be exactly the cell area (no padding), so
+ * that the region borders drawn on each cell line up cleanly at the edges.
+ */
+.grid {
+  display: grid;
+  aspect-ratio: 1;
+  border: 3px solid var(--color-text);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}

@@ -1,0 +1,64 @@
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(20px, 5vmin, 40px);
+  font-family: var(--font-family);
+  cursor: pointer;
+  padding: 0;
+  border-style: solid;
+  border-color: var(--color-text);
+  transition: transform var(--transition-fast);
+}
+
+.cell:active {
+  transform: scale(0.94);
+}
+
+.cell:disabled {
+  cursor: default;
+}
+
+.paw {
+  opacity: 0.6;
+}
+
+.catSprite {
+  display: block;
+  pointer-events: none;
+}
+
+.conflict {
+  filter: brightness(0.85) saturate(1.4);
+  animation: shake 0.4s ease-in-out;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .conflict {
+    animation: none;
+  }
+  .cell,
+  .cell:active {
+    transition: none;
+    transform: none;
+  }
+}
