@@ -33,7 +33,9 @@
 .body {
   position: relative;
   width: 100%;
-  aspect-ratio: 0.62;
+  /* Taller than wide (height ~= 2x width) so the tubes read as test tubes,
+     not stubby jars. */
+  aspect-ratio: 0.5;
   display: flex;
   flex-direction: column;
   overflow: hidden;

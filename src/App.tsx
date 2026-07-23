@@ -55,7 +55,7 @@ export default function App() {
           🌱 BrainSprout
         </span>
       </header>
-      <main style={{ flex: 1 }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             <Route path="/" element={<HomePage />} />

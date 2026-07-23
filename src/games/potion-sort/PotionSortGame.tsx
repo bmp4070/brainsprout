@@ -155,20 +155,22 @@ export default function PotionSortGame() {
         onToggleMute={handleToggleMute}
         onBackToMenu={handleBackToMenu}
       />
-      {state.deadEnd && (
-        <DeadEndBanner
-          onUndo={handleUndo}
-          onRestart={handleRestart}
-          canUndo={state.history.length > 0}
+      <div className={styles.playArea}>
+        {state.deadEnd && (
+          <DeadEndBanner
+            onUndo={handleUndo}
+            onRestart={handleRestart}
+            canUndo={state.history.length > 0}
+          />
+        )}
+        <Shelf
+          board={state.board}
+          selected={state.selected}
+          hint={state.hint}
+          disabled={state.phase !== 'playing'}
+          onTapBottle={handleTapBottle}
         />
-      )}
-      <Shelf
-        board={state.board}
-        selected={state.selected}
-        hint={state.hint}
-        disabled={state.phase !== 'playing'}
-        onTapBottle={handleTapBottle}
-      />
+      </div>
       {state.phase === 'won' && state.result && (
         <CelebrationOverlay
           result={state.result}
