@@ -47,6 +47,12 @@ const STATIC_META: Record<string, PageMeta> = {
       'Free online routing game for kids ages 5 to 11. Plan the shortest school bus route to pick up every kid and get back to school, then earn up to 3 stars.',
     canonicalPath: '/games/bus-route',
   },
+  '/games/potion-sort': {
+    title: 'Potion Sort — Free Color Puzzle Game for Kids',
+    description:
+      'Free online color-sorting logic puzzle for kids ages 5 to 11. Pour magic potions between bottles until every bottle holds one pure color. No login, no ads.',
+    canonicalPath: '/games/potion-sort',
+  },
 };
 
 /** Hand-written, unique per-theme descriptions (kid-facing, character names help search). */

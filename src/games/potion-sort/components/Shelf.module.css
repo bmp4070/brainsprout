@@ -1,0 +1,39 @@
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-md) var(--space-sm);
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--space-md) var(--space-sm) var(--space-lg);
+}
+
+.slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: clamp(44px, 9vw, 72px);
+  padding-bottom: 10px;
+}
+
+/* A short wooden plank segment under each bottle; adjacent segments read as
+   one continuous shelf, on one row or wrapped across two. */
+.slot::after {
+  content: '';
+  position: absolute;
+  left: -5px;
+  right: -5px;
+  bottom: 0;
+  height: 10px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #c98a4e 0%, #9c6530 100%);
+  box-shadow: 0 4px 6px rgba(44, 35, 64, 0.25);
+  z-index: 0;
+}
+
+.slot > button {
+  position: relative;
+  z-index: 1;
+}

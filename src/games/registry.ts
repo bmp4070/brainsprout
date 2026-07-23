@@ -43,4 +43,12 @@ export const games: GameMeta[] = [
     description: 'Plan the shortest bus route — pick up every kid and get back to school!',
     Component: lazy(() => import('./bus-route/BusRouteGame')),
   },
+  {
+    id: 'potion-sort',
+    title: 'Potion Sort',
+    emoji: '🧪',
+    path: '/games/potion-sort',
+    description: 'Pour the magic potions until every bottle is one pure color!',
+    Component: lazy(() => import('./potion-sort/PotionSortGame')),
+  },
 ];

@@ -1,0 +1,47 @@
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--color-accent);
+  background: var(--color-bg-alt);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+}
+
+.message {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+.actionButton {
+  min-height: var(--touch-target-min);
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  font-family: var(--font-family);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: #fff;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

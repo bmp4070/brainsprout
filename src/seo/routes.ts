@@ -15,6 +15,7 @@ export function getStaticRoutes(): string[] {
     '/games/jigsaw',
     '/games/cat-nap',
     '/games/bus-route',
+    '/games/potion-sort',
   ];
 }
 
