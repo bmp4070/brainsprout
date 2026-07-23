@@ -122,33 +122,3 @@ export function playFanfare(): void {
     playTone(freq, freq, 550, 'triangle', 0.2, chordDelay);
   });
 }
-
-/** Short deep drum thump (~120Hz triangle, fast punchy envelope) for a row beat. */
-export function playDrum(): void {
-  if (isMuted()) return;
-  const ctx = getAudioContext();
-  if (!ctx) return;
-  try {
-    const startTime = ctx.currentTime;
-    const duration = 0.12;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(130, startTime);
-    osc.frequency.exponentialRampToValueAtTime(70, startTime + duration);
-    gain.gain.setValueAtTime(0, startTime);
-    gain.gain.linearRampToValueAtTime(0.35, startTime + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(startTime);
-    osc.stop(startTime + duration + 0.05);
-  } catch {
-    // Ignore any playback errors (e.g. context closed mid-flight).
-  }
-}
-
-/** Short downward-pitch "womp" for a rowing-timing mistake. */
-export function playSlip(): void {
-  playTone(260, 110, 220, 'sawtooth', 0.2);
-}

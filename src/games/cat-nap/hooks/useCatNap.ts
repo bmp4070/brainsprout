@@ -38,7 +38,7 @@ export const initialState: GameState = {
 };
 
 /**
- * Score formula (mirrors row-row's structure): a 300-point completion bonus so
+ * Score formula: a 300-point completion bonus so
  * a kid who finishes never sees a demoralizing score, plus up to 500 points for
  * speed against a par time of `size x 45s` (min(1, par/elapsed) x 500 -- solve
  * at or under par for the full bonus, slower tapers toward 0), plus a 200-point

@@ -13,7 +13,6 @@ export function getStaticRoutes(): string[] {
     '/parents',
     '/games/word-search',
     '/games/jigsaw',
-    '/games/row-row',
     '/games/cat-nap',
     '/games/bus-route',
   ];

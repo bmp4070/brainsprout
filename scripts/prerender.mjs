@@ -1,7 +1,7 @@
 // Prerenders every route in the app to static HTML under dist/, for
 // crawlers (and for a snappy first paint) once hosted on Cloudflare Pages.
 //
-// Approach for game routes (/games/word-search, /games/jigsaw, /games/row-row): these pages
+// Approach for game routes (/games/word-search, /games/jigsaw, /games/cat-nap): these pages
 // derive their first-paint state (which theme/scene is "up next", whether
 // sound is muted) from localStorage, which differs between the server (no
 // localStorage -> always the same default) and a real visitor's browser.
@@ -28,7 +28,6 @@ const ssrDir = path.join(rootDir, 'dist-ssr');
 const GAME_ROUTES = new Set([
   '/games/word-search',
   '/games/jigsaw',
-  '/games/row-row',
   '/games/cat-nap',
   '/games/bus-route',
 ]);
@@ -137,7 +136,6 @@ async function main() {
       const gameNames = {
         '/games/word-search': 'BrainSprout Word Search',
         '/games/jigsaw': 'BrainSprout Jigsaw Puzzle',
-        '/games/row-row': 'BrainSprout Row Row',
         '/games/cat-nap': 'BrainSprout Cat Nap',
         '/games/bus-route': 'BrainSprout School Bus Route',
       };

@@ -28,14 +28,6 @@ export const games: GameMeta[] = [
     Component: lazy(() => import('./jigsaw/JigsawGame')),
   },
   {
-    id: 'row-row',
-    title: 'Row Row',
-    emoji: '🚣',
-    path: '/games/row-row',
-    description: 'Row your Viking boat to the goal — but only when the drums are beating!',
-    Component: lazy(() => import('./row-row/RowRowGame')),
-  },
-  {
     id: 'cat-nap',
     title: 'Cat Nap',
     emoji: '🐱',

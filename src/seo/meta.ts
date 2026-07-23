@@ -35,12 +35,6 @@ const STATIC_META: Record<string, PageMeta> = {
       'Free online jigsaw puzzles for kids ages 5 to 11. Drag and drop pieces to complete colorful scenes of dragons, jungles, outer space, and under the sea.',
     canonicalPath: '/games/jigsaw',
   },
-  '/games/row-row': {
-    title: 'Row Row — Viking Boat Rhythm Game for Kids',
-    description:
-      'Free online rhythm game for kids ages 5 to 11. Row your Viking boat across the fjord in time with the drums to score a goal — no login, no ads.',
-    canonicalPath: '/games/row-row',
-  },
   '/games/cat-nap': {
     title: 'Cat Nap — Free Logic Puzzle Game for Kids',
     description:
