@@ -51,4 +51,12 @@ export const games: GameMeta[] = [
     description: 'Pour the magic potions until every bottle is one pure color!',
     Component: lazy(() => import('./potion-sort/PotionSortGame')),
   },
+  {
+    id: 'shape-fit',
+    title: 'Shape Fit',
+    emoji: '🔷',
+    path: '/games/shape-fit',
+    description: 'Rotate and flip the blocks to fill every shape!',
+    Component: lazy(() => import('./shape-fit/ShapeFitGame')),
+  },
 ];

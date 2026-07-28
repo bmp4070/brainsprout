@@ -53,6 +53,12 @@ const STATIC_META: Record<string, PageMeta> = {
       'Free online color-sorting logic puzzle for kids ages 5 to 11. Pour magic potions between bottles until every bottle holds one pure color. No login, no ads.',
     canonicalPath: '/games/potion-sort',
   },
+  '/games/shape-fit': {
+    title: 'Shape Fit — Free Block Puzzle Game for Kids',
+    description:
+      'Free online block-fitting puzzle for kids ages 5 to 11. Rotate and flip colorful pieces to fill every shaped outline and build spatial logic skills. No login, no ads.',
+    canonicalPath: '/games/shape-fit',
+  },
 };
 
 /** Hand-written, unique per-theme descriptions (kid-facing, character names help search). */
@@ -67,6 +73,12 @@ const THEME_DESCRIPTIONS: Record<string, string> = {
     'Play a free Dog Man word search for kids! Find Dog Man, Petey, Molly, and more silly hero names in three difficulty levels, from an 8x8 grid up to 12x12.',
   'roald-dahl':
     'Play a free Roald Dahl word search for kids! Find Matilda, Wonka, Sophie, and more storybook names in three difficulty levels, 8x8 up to 12x12 grids.',
+  narnia:
+    'Play a free Chronicles of Narnia word search for kids! Find Lucy, Aslan, Caspian, and more magical names in three difficulty levels, 8x8 up to 12x12.',
+  'winnie-the-pooh':
+    'Play a free Winnie the Pooh word search for kids! Find Pooh, Piglet, Tigger, and more Hundred Acre Wood friends in three difficulty levels, 8x8 up to 12x12.',
+  'alice-in-wonderland':
+    'Play a free Alice in Wonderland word search for kids! Find Alice, the Hatter, and the Cheshire Cat in three difficulty levels, from an 8x8 grid up to 12x12.',
 };
 
 function themeMeta(themeId: string): PageMeta | undefined {

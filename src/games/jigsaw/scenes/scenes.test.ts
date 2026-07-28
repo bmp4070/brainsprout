@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { scenes, sceneToDataUri } from './index';
 
 describe('jigsaw scenes', () => {
-  it('has exactly 4 scenes', () => {
-    expect(scenes).toHaveLength(4);
+  it('has exactly 7 scenes', () => {
+    expect(scenes).toHaveLength(7);
   });
 
   it('has unique ids', () => {

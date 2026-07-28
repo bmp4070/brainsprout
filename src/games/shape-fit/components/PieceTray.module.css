@@ -1,0 +1,16 @@
+.tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  max-width: 640px;
+  padding: var(--space-md);
+}
+
+.empty {
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+  padding: var(--space-md);
+}

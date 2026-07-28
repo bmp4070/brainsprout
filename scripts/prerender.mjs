@@ -31,6 +31,7 @@ const GAME_ROUTES = new Set([
   '/games/cat-nap',
   '/games/bus-route',
   '/games/potion-sort',
+  '/games/shape-fit',
 ]);
 
 async function loadSsrEntry() {
@@ -140,6 +141,7 @@ async function main() {
         '/games/cat-nap': 'BrainSprout Cat Nap',
         '/games/bus-route': 'BrainSprout School Bus Route',
         '/games/potion-sort': 'BrainSprout Potion Sort',
+        '/games/shape-fit': 'BrainSprout Shape Fit',
       };
       const schema = gameSchema({
         name: gameNames[route] ?? 'BrainSprout Game',

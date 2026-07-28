@@ -1,0 +1,41 @@
+.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  padding: var(--space-sm);
+  border: 3px solid transparent;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+  cursor: grab;
+  touch-action: none;
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.button:active {
+  cursor: grabbing;
+}
+
+.selected {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.dragging {
+  opacity: 0.35;
+}
+
+.grid {
+  display: grid;
+}
+
+.block {
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
