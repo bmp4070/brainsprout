@@ -56,7 +56,15 @@ export const games: GameMeta[] = [
     title: 'Shape Fit',
     emoji: '🔷',
     path: '/games/shape-fit',
-    description: 'Rotate and flip the blocks to fill every shape!',
+    description: 'Fit triangles, squares, and lines into the shape — rotate and flip to solve!',
     Component: lazy(() => import('./shape-fit/ShapeFitGame')),
+  },
+  {
+    id: 'math-sprout',
+    title: 'Math Sprout',
+    emoji: '🧮',
+    path: '/games/math-sprout',
+    description: 'Practice subtraction and multiplication — see the numbers, tap the answer!',
+    Component: lazy(() => import('./math-sprout/MathSproutGame')),
   },
 ];

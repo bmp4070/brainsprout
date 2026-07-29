@@ -1,19 +1,26 @@
 import { useCallback, useReducer } from 'react';
 import { generatePuzzle } from '../lib/generator';
+import { getNextBackdrop } from '../lib/backdropRotation';
 import { scoreFit } from '../lib/scoring';
 import type { FitResult } from '../lib/scoring';
-import { flipH, normalize, placeAt, rotate90, canPlace } from '../lib/shapes';
+import { canPlace, flipH, normalizeTris, placeAt, rotate90 } from '../lib/tri';
 import { hintPlacement, isCompletable } from '../lib/solver';
 import { DIFFICULTIES } from '../lib/types';
-import type { Cell, DifficultyConfig, Piece, Placement, Puzzle } from '../lib/types';
+import type { Backdrop, DifficultyConfig, Piece, Placement, Puzzle, Tri } from '../lib/types';
+import { triKey } from '../lib/types';
+
+interface CellPos {
+  r: number;
+  c: number;
+}
 
 /** Per-tray-piece live orientation + placement. */
 export interface TrayPiece {
   piece: Piece;
   rot: 0 | 1 | 2 | 3;
   flipped: boolean;
-  /** bbox-top-left on the board, or null if the piece is still in the tray. */
-  placedAt: Cell | null;
+  /** bbox-top-left cell on the board, or null if the piece is still in the tray. */
+  placedAt: CellPos | null;
 }
 
 export interface GameState {
@@ -22,7 +29,7 @@ export interface GameState {
   puzzle: Puzzle | null;
   tray: TrayPiece[];
   selectedId: number | null;
-  /** cellKey -> pieceId of every covered region cell. */
+  /** triKey -> pieceId for every covered region tri. */
   occupied: Record<string, number>;
   hint: Placement | null;
   deadEnd: boolean;
@@ -39,7 +46,7 @@ export type Action =
   | { type: 'SELECT'; id: number | null }
   | { type: 'ROTATE' }
   | { type: 'FLIP' }
-  | { type: 'PLACE'; id: number; at: Cell }
+  | { type: 'PLACE'; id: number; at: CellPos }
   | { type: 'PICKUP'; id: number }
   | { type: 'HINT'; now?: number }
   | { type: 'TICK'; now: number }
@@ -63,26 +70,19 @@ export const initialState: GameState = {
   result: null,
 };
 
-/** Current oriented + normalized silhouette for a tray piece (rotate, then flip). */
-export function orientedCells(trayPiece: TrayPiece): Cell[] {
-  let cells = normalize(trayPiece.piece.cells);
-  for (let i = 0; i < trayPiece.rot; i += 1) cells = rotate90(cells);
-  if (trayPiece.flipped) cells = flipH(cells);
-  return cells;
+/** Current oriented + normalized tris for a tray piece (rotate, then flip). */
+export function orientedTris(trayPiece: TrayPiece): Tri[] {
+  let tris = normalizeTris(trayPiece.piece.tris);
+  for (let i = 0; i < trayPiece.rot; i += 1) tris = rotate90(tris);
+  if (trayPiece.flipped) tris = flipH(tris);
+  return tris;
 }
 
-/** Total number of region cells (the win target). */
-function regionCellCount(puzzle: Puzzle): number {
-  let count = 0;
-  for (let r = 0; r < puzzle.rows; r += 1) {
-    for (let c = 0; c < puzzle.cols; c += 1) {
-      if (puzzle.region[r][c]) count += 1;
-    }
-  }
-  return count;
+function regionSetOf(puzzle: Puzzle): Set<string> {
+  return new Set(puzzle.region.map(triKey));
 }
 
-/** Set of occupied cell keys, optionally excluding one piece's cells. */
+/** Set of occupied tri keys, optionally excluding one piece's tris. */
 function occupiedSet(occupied: Record<string, number>, excludeId?: number): Set<string> {
   const set = new Set<string>();
   for (const key in occupied) {
@@ -101,7 +101,7 @@ function remainingPieces(tray: TrayPiece[]): Piece[] {
 function computeDeadEnd(puzzle: Puzzle, occupied: Record<string, number>, tray: TrayPiece[]): boolean {
   const remaining = remainingPieces(tray);
   if (remaining.length === 0) return false;
-  return !isCompletable(puzzle.region, occupiedSet(occupied), remaining);
+  return !isCompletable(regionSetOf(puzzle), occupiedSet(occupied), remaining);
 }
 
 /** Pure reducer for the shape-fit game. Performs no side effects. */
@@ -148,9 +148,8 @@ export function reducer(state: GameState, action: Action): GameState {
   const puzzle = state.puzzle;
 
   switch (action.type) {
-    case 'SELECT': {
+    case 'SELECT':
       return { ...state, selectedId: action.id };
-    }
 
     case 'ROTATE':
     case 'FLIP': {
@@ -160,7 +159,7 @@ export function reducer(state: GameState, action: Action): GameState {
       if (idx === -1) return state;
       const tp = state.tray[idx];
 
-      // If placed, lift it back to the tray (freeing its cells) before turning.
+      // If placed, lift it back to the tray (freeing its tris) before turning.
       let occupied = state.occupied;
       if (tp.placedAt !== null) {
         occupied = { ...state.occupied };
@@ -190,10 +189,10 @@ export function reducer(state: GameState, action: Action): GameState {
       const idx = state.tray.findIndex((tp) => tp.piece.id === id);
       if (idx === -1) return { ...state, hint: null };
       const tp = state.tray[idx];
-      const abs = placeAt(orientedCells(tp), at.r, at.c);
+      const abs = placeAt(orientedTris(tp), at.r, at.c);
       const occExcluding = occupiedSet(state.occupied, id);
 
-      if (!canPlace(puzzle.region, occExcluding, abs)) {
+      if (!canPlace(regionSetOf(puzzle), occExcluding, abs)) {
         return { ...state, misplacedAttempts: state.misplacedAttempts + 1, hint: null };
       }
 
@@ -201,14 +200,13 @@ export function reducer(state: GameState, action: Action): GameState {
       for (const key in state.occupied) {
         if (state.occupied[key] !== id) occupied[key] = state.occupied[key];
       }
-      for (const cell of abs) occupied[`${cell.r},${cell.c}`] = id;
+      for (const t of abs) occupied[triKey(t)] = id;
 
       const tray = [...state.tray];
       tray[idx] = { ...tp, placedAt: at };
       const moves = state.moves + 1;
 
-      const covered = Object.keys(occupied).length;
-      const won = covered === regionCellCount(puzzle);
+      const won = Object.keys(occupied).length === puzzle.region.length;
       if (won) {
         return {
           ...state,
@@ -263,7 +261,7 @@ export function reducer(state: GameState, action: Action): GameState {
     case 'HINT': {
       const remaining = remainingPieces(state.tray);
       if (remaining.length === 0) return state;
-      const placement = hintPlacement(puzzle.region, occupiedSet(state.occupied), remaining);
+      const placement = hintPlacement(regionSetOf(puzzle), occupiedSet(state.occupied), remaining);
       if (placement === null) return state;
       return { ...state, hint: placement, hintsUsed: state.hintsUsed + 1 };
     }
@@ -289,19 +287,22 @@ export function reducer(state: GameState, action: Action): GameState {
 
 /**
  * React hook wrapping the shape-fit reducer. `start` generates a seeded,
- * solvable puzzle and dispatches START with the current timestamp.
+ * solvable tangram round (diamond or rhombus backdrop) and dispatches START.
  */
 export function useShapeFit(): {
   state: GameState;
   dispatch: React.Dispatch<Action>;
-  start: (difficulty: DifficultyConfig, seed?: number) => void;
+  start: (difficulty: DifficultyConfig, seed?: number, backdrop?: Backdrop) => void;
 } {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const start = useCallback((difficulty: DifficultyConfig, seed: number = Date.now()) => {
-    const puzzle = generatePuzzle(difficulty, seed);
-    dispatch({ type: 'START', difficulty, puzzle, now: Date.now() });
-  }, []);
+  const start = useCallback(
+    (difficulty: DifficultyConfig, seed: number = Date.now(), backdrop: Backdrop = getNextBackdrop()) => {
+      const puzzle = generatePuzzle(difficulty, seed, backdrop);
+      dispatch({ type: 'START', difficulty, puzzle, now: Date.now() });
+    },
+    [],
+  );
 
   return { state, dispatch, start };
 }

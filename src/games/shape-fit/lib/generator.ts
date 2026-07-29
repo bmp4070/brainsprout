@@ -1,288 +1,211 @@
-import { mulberry32, randInt } from '../../../shared/lib/rng';
-import { canPlace, normalize, orientations, placeAt } from './shapes';
-import type { Cell, DifficultyConfig, Piece, Placement, Puzzle } from './types';
+import { mulberry32 } from '../../../shared/lib/rng';
+import { PALETTE } from './palette';
+import type { PaletteShape } from './palette';
+import { normalizeTris, orientations, placeAt } from './tri';
+import type { Backdrop, DifficultyConfig, Piece, Placement, Puzzle, Tri } from './types';
+import { triKey } from './types';
 
 /** Minimum piece count per difficulty (rejects trivial puzzles). */
 const MIN_PIECES: Record<string, number> = { easy: 3, medium: 4, hard: 5 };
 
-/** Bounded outer attempts before falling back to a hand-built puzzle. */
-const MAX_ATTEMPTS = 300;
-
-/** Base polyomino shapes, grouped by size. All normalized. */
-const DOMINOES: Cell[][] = [[{ r: 0, c: 0 }, { r: 0, c: 1 }]];
-
-const TROMINOES: Cell[][] = [
-  [{ r: 0, c: 0 }, { r: 0, c: 1 }, { r: 0, c: 2 }], // I
-  [{ r: 0, c: 0 }, { r: 1, c: 0 }, { r: 1, c: 1 }], // L
-];
-
-const TETROMINOES: Cell[][] = [
-  [{ r: 0, c: 0 }, { r: 0, c: 1 }, { r: 0, c: 2 }, { r: 0, c: 3 }], // I
-  [{ r: 0, c: 0 }, { r: 0, c: 1 }, { r: 1, c: 0 }, { r: 1, c: 1 }], // O
-  [{ r: 0, c: 0 }, { r: 0, c: 1 }, { r: 0, c: 2 }, { r: 1, c: 1 }], // T
-  [{ r: 0, c: 0 }, { r: 1, c: 0 }, { r: 2, c: 0 }, { r: 2, c: 1 }], // L
-  [{ r: 0, c: 1 }, { r: 0, c: 2 }, { r: 1, c: 0 }, { r: 1, c: 1 }], // S
-];
-
-const PENTOMINOES: Cell[][] = [
-  [{ r: 0, c: 0 }, { r: 0, c: 1 }, { r: 1, c: 0 }, { r: 1, c: 1 }, { r: 2, c: 0 }], // P
-  [{ r: 0, c: 0 }, { r: 1, c: 0 }, { r: 2, c: 0 }, { r: 3, c: 0 }, { r: 3, c: 1 }], // L
-  [{ r: 0, c: 0 }, { r: 0, c: 1 }, { r: 0, c: 2 }, { r: 1, c: 1 }, { r: 2, c: 1 }], // T
-  [{ r: 0, c: 0 }, { r: 0, c: 2 }, { r: 1, c: 0 }, { r: 1, c: 1 }, { r: 1, c: 2 }], // U
-  [{ r: 0, c: 0 }, { r: 1, c: 0 }, { r: 1, c: 1 }, { r: 2, c: 0 }, { r: 3, c: 0 }], // Y
-];
-
-interface TilerPlacement {
-  base: Cell[];
-  abs: Cell[];
+interface CellPos {
+  r: number;
+  c: number;
 }
 
-/** In-place Fisher-Yates shuffle using the supplied PRNG. */
-function shuffle<T>(rng: () => number, arr: T[]): void {
-  for (let i = arr.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(rng() * (i + 1));
-    const tmp = arr[i];
-    arr[i] = arr[j];
-    arr[j] = tmp;
-  }
-}
-
-/**
- * Builds the ordered palette for a difficulty: larger shapes first (to keep the
- * piece count low), with a seeded shuffle within each size band for variety.
- */
-function buildPalette(rng: () => number, difficulty: DifficultyConfig): Cell[][] {
-  const bands: Cell[][][] = [];
-  if (difficulty.id === 'hard') bands.push([...PENTOMINOES]);
-  bands.push([...TETROMINOES]);
-  bands.push([...TROMINOES]);
-  bands.push([...DOMINOES]);
-  const palette: Cell[][] = [];
-  for (const band of bands) {
-    shuffle(rng, band);
-    for (const shape of band) palette.push(shape);
-  }
-  return palette;
-}
-
-/** Counts a cell's 4-connected neighbours already inside the region. */
-function inRegionNeighbours(inRegion: boolean[][], r: number, c: number): number {
-  const rows = inRegion.length;
-  const cols = inRegion[0].length;
-  let count = 0;
-  if (r > 0 && inRegion[r - 1][c]) count += 1;
-  if (r < rows - 1 && inRegion[r + 1][c]) count += 1;
-  if (c > 0 && inRegion[r][c - 1]) count += 1;
-  if (c < cols - 1 && inRegion[r][c + 1]) count += 1;
-  return count;
-}
-
-/**
- * Grows a connected region of exactly `targetCells` via a seeded flood, biased
- * to prefer candidate cells that already touch many in-region cells so the
- * silhouette stays compact and intentional-looking.
- */
-function growRegion(rng: () => number, difficulty: DifficultyConfig): boolean[][] {
-  const { rows, cols, targetCells } = difficulty;
-  const inRegion: boolean[][] = Array.from({ length: rows }, () =>
-    Array.from({ length: cols }, () => false),
-  );
-
-  const startR = randInt(rng, rows);
-  const startC = randInt(rng, cols);
-  inRegion[startR][startC] = true;
-  let size = 1;
-
-  // Frontier: candidate cells adjacent to the region, keyed to avoid dupes.
-  const frontier = new Map<string, Cell>();
-  const addFrontier = (r: number, c: number): void => {
-    if (r < 0 || r >= rows || c < 0 || c >= cols) return;
-    if (inRegion[r][c]) return;
-    frontier.set(`${r},${c}`, { r, c });
-  };
-  addFrontier(startR - 1, startC);
-  addFrontier(startR + 1, startC);
-  addFrontier(startR, startC - 1);
-  addFrontier(startR, startC + 1);
-
-  while (size < targetCells && frontier.size > 0) {
-    const candidates = [...frontier.values()];
-    // Weight by neighbour count squared (+1 base) so compact growth dominates.
-    const weights = candidates.map((cell) => {
-      const n = inRegionNeighbours(inRegion, cell.r, cell.c);
-      return n * n + 1;
-    });
-    let total = 0;
-    for (const w of weights) total += w;
-    let roll = rng() * total;
-    let chosen = 0;
-    for (let i = 0; i < candidates.length; i += 1) {
-      roll -= weights[i];
-      if (roll < 0) {
-        chosen = i;
-        break;
+/** The backdrop's cells (normalized so min row/col are 0). */
+function backdropCells(backdrop: Backdrop, size: number): CellPos[] {
+  const cells: CellPos[] = [];
+  if (backdrop === 'diamond') {
+    // Manhattan ball, radius capped at 2 (13 cells) so no round has a huge,
+    // unwieldy tray; the rhombus carries the size progression at hard.
+    const radius = Math.min(size, 2);
+    for (let r = 0; r <= 2 * radius; r += 1) {
+      for (let c = 0; c <= 2 * radius; c += 1) {
+        if (Math.abs(r - radius) + Math.abs(c - radius) <= radius) cells.push({ r, c });
       }
     }
-    const cell = candidates[chosen];
-    frontier.delete(`${cell.r},${cell.c}`);
-    inRegion[cell.r][cell.c] = true;
-    size += 1;
-    addFrontier(cell.r - 1, cell.c);
-    addFrontier(cell.r + 1, cell.c);
-    addFrontier(cell.r, cell.c - 1);
-    addFrontier(cell.r, cell.c + 1);
+  } else {
+    // Sheared parallelogram: rows H, width W, slanting right with each row.
+    const h = size + 1;
+    const w = size + 2;
+    for (let i = 0; i < h; i += 1) {
+      for (let j = 0; j < w; j += 1) {
+        cells.push({ r: i, c: i + j });
+      }
+    }
   }
+  let minR = Infinity;
+  let minC = Infinity;
+  for (const cell of cells) {
+    if (cell.r < minR) minR = cell.r;
+    if (cell.c < minC) minC = cell.c;
+  }
+  return cells.map((cell) => ({ r: cell.r - minR, c: cell.c - minC }));
+}
 
-  return inRegion;
+/** All four atomic tris of every backdrop cell. */
+function regionTris(cells: CellPos[]): Tri[] {
+  const tris: Tri[] = [];
+  for (const cell of cells) {
+    for (let d = 0 as Tri['d']; d < 4; d = (d + 1) as Tri['d']) {
+      tris.push({ r: cell.r, c: cell.c, d });
+    }
+  }
+  return tris;
+}
+
+interface PlacedShape {
+  shape: PaletteShape;
+  tris: Tri[]; // absolute
+}
+
+interface ShapeOrientations {
+  shape: PaletteShape;
+  orientations: Tri[][];
+}
+
+interface Candidate {
+  shape: PaletteShape;
+  abs: Tri[];
 }
 
 /**
- * Backtracking tiler: covers the lowest uncovered region cell each step using
- * palette shapes (largest first). Fails a branch once it would exceed
- * `maxPieces`. Returns one tiling, or null if the region can't be tiled within
- * the piece budget.
+ * Greedy randomized tiler: repeatedly covers the lowest uncovered tri with a
+ * fitting palette placement, weighted toward LARGER and non-square pieces so
+ * puzzles look varied (triangles + lines + squares) rather than a grid of unit
+ * squares. Because a single-triangle piece fits any lone tri, greedy placement
+ * can never get stuck — it always terminates with a valid exact tiling, so the
+ * result is a guaranteed-solvable round. Deterministic given `rng`.
  */
-function tileRegion(
-  region: boolean[][],
-  palette: Cell[][],
-  maxPieces: number,
-): TilerPlacement[] | null {
-  const rows = region.length;
-  const cols = rows > 0 ? region[0].length : 0;
-  const orientCache = palette.map((shape) => orientations(shape));
+function greedyTile(
+  region: Tri[],
+  regionSet: ReadonlySet<string>,
+  palette: ShapeOrientations[],
+  rng: () => number,
+): PlacedShape[] {
   const covered = new Set<string>();
-  const placed: TilerPlacement[] = [];
+  const placed: PlacedShape[] = [];
 
-  const findTarget = (): Cell | null => {
-    for (let r = 0; r < rows; r += 1) {
-      for (let c = 0; c < cols; c += 1) {
-        if (region[r][c] && !covered.has(`${r},${c}`)) return { r, c };
-      }
-    }
-    return null;
-  };
-
-  const recurse = (): boolean => {
-    const target = findTarget();
-    if (target === null) return true;
-    if (placed.length >= maxPieces) return false;
-
-    for (let i = 0; i < palette.length; i += 1) {
-      for (const oriented of orientCache[i]) {
-        for (const anchor of oriented) {
-          const offR = target.r - anchor.r;
-          const offC = target.c - anchor.c;
-          const abs = oriented.map((cell) => ({ r: cell.r + offR, c: cell.c + offC }));
-          if (!canPlace(region, covered, abs)) continue;
-
-          for (const cell of abs) covered.add(`${cell.r},${cell.c}`);
-          placed.push({ base: normalize(palette[i]), abs });
-          if (recurse()) return true;
-          placed.pop();
-          for (const cell of abs) covered.delete(`${cell.r},${cell.c}`);
+  function fittingCandidates(target: Tri): Candidate[] {
+    const out: Candidate[] = [];
+    for (const so of palette) {
+      for (const orient of so.orientations) {
+        for (const anchor of orient) {
+          if (anchor.d !== target.d) continue;
+          const abs = placeAt(orient, target.r - anchor.r, target.c - anchor.c);
+          let fits = true;
+          for (const t of abs) {
+            const key = triKey(t);
+            if (!regionSet.has(key) || covered.has(key)) {
+              fits = false;
+              break;
+            }
+          }
+          if (fits) out.push({ shape: so.shape, abs });
         }
       }
     }
-    return false;
-  };
+    return out;
+  }
 
-  return recurse() ? placed : null;
+  for (const target of region) {
+    if (covered.has(triKey(target))) continue;
+    const candidates = fittingCandidates(target);
+    // Weight larger pieces higher (fewer, chunkier tiles), with a bump for
+    // triangles/lines so the tangram look shows through. TRI_SMALL is always
+    // present as a fallback, so `candidates` is never empty.
+    let total = 0;
+    const weights = candidates.map((cand) => {
+      const size = cand.abs.length;
+      // Square the size so big pieces are preferred (small tray) but small
+      // triangles still get chosen often enough to give the tangram look; the
+      // triangle bump keeps them appearing.
+      const kindBonus = cand.shape.kind === 'triangle' ? 1.6 : cand.shape.kind === 'line' ? 1.2 : 1;
+      const w = size * size * kindBonus;
+      total += w;
+      return w;
+    });
+    let pick = rng() * total;
+    let chosen = candidates[candidates.length - 1];
+    for (let i = 0; i < candidates.length; i += 1) {
+      pick -= weights[i];
+      if (pick <= 0) {
+        chosen = candidates[i];
+        break;
+      }
+    }
+    for (const t of chosen.abs) covered.add(triKey(t));
+    placed.push({ shape: chosen.shape, tris: chosen.abs });
+  }
+
+  return placed;
 }
 
-/** True when every placement in the tiling uses an identical base shape. */
-function allIdentical(placements: TilerPlacement[]): boolean {
-  if (placements.length <= 1) return true;
-  const key = (base: Cell[]): string => base.map((cell) => `${cell.r},${cell.c}`).join('|');
-  const first = key(placements[0].base);
-  return placements.every((p) => key(p.base) === first);
+function kindsOf(placed: PlacedShape[]): Set<string> {
+  return new Set(placed.map((p) => p.shape.kind));
 }
 
-/** Assembles pieces + solution from a tiling. */
-function buildFromTiling(
-  rows: number,
-  cols: number,
-  region: boolean[][],
-  placements: TilerPlacement[],
+/**
+ * A tiling reads as a proper tangram when it includes at least one triangle
+ * (the whole point of the game) plus at least one other shape family.
+ */
+function isVaried(placed: PlacedShape[]): boolean {
+  return placed.some((p) => p.shape.kind === 'triangle') && kindsOf(placed).size >= 2;
+}
+
+function toPuzzle(
+  placed: PlacedShape[],
+  cells: CellPos[],
+  region: Tri[],
+  backdrop: Backdrop,
+  _size: number,
   seed: number,
 ): Puzzle {
-  const pieces: Piece[] = placements.map((p, id) => ({
+  const rows = Math.max(...cells.map((c) => c.r)) + 1;
+  const cols = Math.max(...cells.map((c) => c.c)) + 1;
+  const pieces: Piece[] = placed.map((p, id) => ({
     id,
-    cells: p.base,
+    tris: normalizeTris(p.shape.tris),
     colorIndex: id % 7,
+    kind: p.shape.kind,
   }));
-  const solution: Placement[] = placements.map((p, id) => ({ pieceId: id, cells: p.abs }));
-  return { rows, cols, region, pieces, solution, seed };
+  const solution: Placement[] = placed.map((p, id) => ({ pieceId: id, tris: p.tris }));
+  return { rows, cols, backdrop, region, pieces, solution, seed };
 }
 
 /**
- * Deterministic, always-terminating hand-built fallback per difficulty: a
- * rectangle-ish region tiled by an explicit, non-identical piece set. Used only
- * when the randomized attempts all fail (rare).
+ * Generates a solvable tangram round: a diamond or rhombus backdrop tiled by
+ * triangle/square/line pieces. Deterministic per (seed, backdrop). Never
+ * throws and never loops forever — bounded attempts then a fresh seed.
  */
-function fallbackPuzzle(difficulty: DifficultyConfig, seed: number): Puzzle {
-  const { rows, cols } = difficulty;
-  const region: boolean[][] = Array.from({ length: rows }, () =>
-    Array.from({ length: cols }, () => false),
-  );
-  const O = [{ r: 0, c: 0 }, { r: 0, c: 1 }, { r: 1, c: 0 }, { r: 1, c: 1 }];
-  const I4 = [{ r: 0, c: 0 }, { r: 0, c: 1 }, { r: 0, c: 2 }, { r: 0, c: 3 }];
-  const DOM = [{ r: 0, c: 0 }, { r: 1, c: 0 }];
+export function generatePuzzle(
+  difficulty: DifficultyConfig,
+  seed: number,
+  backdrop: Backdrop,
+): Puzzle {
+  const size = difficulty.size;
+  const minPieces = MIN_PIECES[difficulty.id] ?? 3;
+  const cells = backdropCells(backdrop, size);
+  const region = regionTris(cells);
+  const regionSet = new Set(region.map(triKey));
+  const paletteOriented: ShapeOrientations[] = PALETTE.map((shape) => ({
+    shape,
+    orientations: orientations(shape.tris),
+  }));
 
-  const specs: { base: Cell[]; at: Cell }[] = [];
-  if (difficulty.id === 'easy') {
-    // 2x5 region: O, O, vertical domino.
-    specs.push({ base: O, at: { r: 0, c: 0 } });
-    specs.push({ base: O, at: { r: 0, c: 2 } });
-    specs.push({ base: DOM, at: { r: 0, c: 4 } });
-  } else if (difficulty.id === 'medium') {
-    // rows 0-1 cols 0-5 (12) + row 2 cols 0-3 (4): three O + one I.
-    specs.push({ base: O, at: { r: 0, c: 0 } });
-    specs.push({ base: O, at: { r: 0, c: 2 } });
-    specs.push({ base: O, at: { r: 0, c: 4 } });
-    specs.push({ base: I4, at: { r: 2, c: 0 } });
-  } else {
-    // rows 0-3 cols 0-5 (24): four O + two I.
-    specs.push({ base: O, at: { r: 0, c: 0 } });
-    specs.push({ base: O, at: { r: 0, c: 2 } });
-    specs.push({ base: O, at: { r: 0, c: 4 } });
-    specs.push({ base: I4, at: { r: 2, c: 0 } });
-    specs.push({ base: I4, at: { r: 3, c: 0 } });
-    specs.push({ base: O, at: { r: 2, c: 4 } });
-  }
-
-  const placements: TilerPlacement[] = specs.map((spec) => {
-    const base = normalize(spec.base);
-    const abs = placeAt(base, spec.at.r, spec.at.c);
-    for (const cell of abs) region[cell.r][cell.c] = true;
-    return { base, abs };
-  });
-
-  return buildFromTiling(rows, cols, region, placements, seed);
-}
-
-/**
- * Generates a solvable puzzle for `difficulty`/`seed`, deterministically.
- *
- * Loop (never recurses, never spins forever): grow a compact random region,
- * tile it largest-shapes-first within `maxPieces`, and accept the first tiling
- * that is non-trivial (piece count within [min, maxPieces], not all-identical).
- * Piece-count lower bounds are automatically met because targetCells / maxShape
- * forces at least the required number of pieces. If every attempt is rejected,
- * fall back to a hand-built puzzle that is valid by construction.
- */
-export function generatePuzzle(difficulty: DifficultyConfig, seed: number): Puzzle {
   const rng = mulberry32(seed);
-  const minPieces = MIN_PIECES[difficulty.id];
-
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    const region = growRegion(rng, difficulty);
-    const palette = buildPalette(rng, difficulty);
-    const tiling = tileRegion(region, palette, difficulty.maxPieces);
-    if (tiling === null) continue;
-    if (tiling.length < minPieces || tiling.length > difficulty.maxPieces) continue;
-    if (allIdentical(tiling)) continue;
-    return buildFromTiling(difficulty.rows, difficulty.cols, region, tiling, seed);
+  // Greedy tiling always succeeds; run several attempts and keep the one with
+  // the FEWEST pieces that still looks varied and meets the minimum — a small,
+  // chunky, kid-friendly tray. Falls back to the fewest-piece attempt overall.
+  let best: PlacedShape[] | null = null;
+  let bestOverall: PlacedShape[] | null = null;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const placed = greedyTile(region, regionSet, paletteOriented, rng);
+    if (bestOverall === null || placed.length < bestOverall.length) bestOverall = placed;
+    if (placed.length < minPieces || !isVaried(placed)) continue;
+    if (best === null || placed.length < best.length) best = placed;
   }
-
-  return fallbackPuzzle(difficulty, seed);
+  const chosen = best ?? bestOverall ?? greedyTile(region, regionSet, paletteOriented, rng);
+  return toPuzzle(chosen, cells, region, backdrop, size, seed);
 }

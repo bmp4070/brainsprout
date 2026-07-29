@@ -3,10 +3,12 @@ import { getMetaForPath } from '../../seo/meta';
 import { usePageMeta } from '../../seo/usePageMeta';
 import JsonLd from '../../seo/JsonLd';
 import { gameSchema } from '../../seo/schema';
-import { useShapeFit, orientedCells } from './hooks/useShapeFit';
+import { useShapeFit, orientedTris } from './hooks/useShapeFit';
 import { recordResult } from './lib/storage';
-import { canPlace, placeAt } from './lib/shapes';
-import type { DifficultyConfig } from './lib/types';
+import { canPlace, placeAt } from './lib/tri';
+import { getNextBackdrop, advanceBackdrop } from './lib/backdropRotation';
+import { triKey } from './lib/types';
+import type { Backdrop, DifficultyConfig } from './lib/types';
 import DifficultyPicker from './components/DifficultyPicker';
 import Hud from './components/Hud';
 import Board from './components/Board';
@@ -18,6 +20,7 @@ import CelebrationOverlay from './components/CelebrationOverlay';
 import {
   ensureAudioReady,
   isMuted,
+  playFanfare,
   playFound,
   playTick,
   playWrong,
@@ -48,7 +51,14 @@ export default function ShapeFitGame() {
   const [isNewBest, setIsNewBest] = useState(false);
   const [drag, setDrag] = useState<DragState | null>(null);
 
-  const boardRef = useRef<HTMLDivElement>(null);
+  // `upNextBackdrop` is what the difficulty picker offers for the round
+  // that's about to start; starting a round plays it and advances the
+  // rotation for next time (word-search's theme-rotation pattern). Once a
+  // round is live, `state.puzzle.backdrop` is the authoritative "active"
+  // value, so there's no separate active-backdrop state to keep in sync.
+  const [upNextBackdrop, setUpNextBackdrop] = useState<Backdrop>(() => getNextBackdrop());
+
+  const boardRef = useRef<SVGSVGElement>(null);
   const recordedRef = useRef(false);
 
   // Elapsed-time ticking, word-search/cat-nap style: a 250ms interval that
@@ -73,12 +83,22 @@ export default function ShapeFitGame() {
     }
   }, [state.phase, state.difficulty, state.result]);
 
+  /** Starts a round with the backdrop currently shown as "up next", then rotates. */
+  const playRound = useCallback(
+    (difficulty: DifficultyConfig) => {
+      const backdropToPlay = upNextBackdrop;
+      setUpNextBackdrop(advanceBackdrop());
+      start(difficulty, undefined, backdropToPlay);
+    },
+    [start, upNextBackdrop],
+  );
+
   const handlePick = useCallback(
     (difficulty: DifficultyConfig) => {
       ensureAudioReady();
-      start(difficulty);
+      playRound(difficulty);
     },
-    [start],
+    [playRound],
   );
 
   const handleBackToMenu = useCallback(() => {
@@ -94,9 +114,9 @@ export default function ShapeFitGame() {
 
   const handleNewShape = useCallback(() => {
     if (state.difficulty) {
-      start(state.difficulty);
+      playRound(state.difficulty);
     }
-  }, [start, state.difficulty]);
+  }, [playRound, state.difficulty]);
 
   const handleHint = useCallback(() => {
     playTick(0);
@@ -133,6 +153,11 @@ export default function ShapeFitGame() {
     [dispatch],
   );
 
+  const regionSet = useMemo(() => {
+    if (!state.puzzle) return null;
+    return new Set(state.puzzle.region.map(triKey));
+  }, [state.puzzle]);
+
   // Converts a drag's live pointer position into a snapped board cell
   // (the piece's bounding-box top-left), clamped to stay in-grid.
   const cellForDrag = useCallback(
@@ -149,18 +174,28 @@ export default function ShapeFitGame() {
     [state.puzzle],
   );
 
+  /** Occupied triKey set, excluding whatever a given piece currently covers. */
+  const occupiedExcluding = useCallback(
+    (pieceId: number): Set<string> => {
+      const set = new Set<string>();
+      for (const key in state.occupied) {
+        if (state.occupied[key] !== pieceId) set.add(key);
+      }
+      return set;
+    },
+    [state.occupied],
+  );
+
   const preview: BoardPreview | null = useMemo(() => {
-    if (!drag || !state.puzzle) return null;
+    if (!drag || !state.puzzle || !regionSet) return null;
     const trayPiece = state.tray.find((tp) => tp.piece.id === drag.pieceId);
     if (!trayPiece) return null;
     const cell = cellForDrag(drag.clientX, drag.clientY);
     if (!cell) return null;
-    const oriented = orientedCells(trayPiece);
-    const absCells = placeAt(oriented, cell.r, cell.c);
-    const occupiedSet = new Set(Object.keys(state.occupied));
-    const valid = canPlace(state.puzzle.region, occupiedSet, absCells);
-    return { cells: absCells, valid };
-  }, [drag, state.puzzle, state.tray, state.occupied, cellForDrag]);
+    const absTris = placeAt(orientedTris(trayPiece), cell.r, cell.c);
+    const valid = canPlace(regionSet, occupiedExcluding(drag.pieceId), absTris);
+    return { tris: absTris, valid };
+  }, [drag, state.puzzle, state.tray, regionSet, cellForDrag, occupiedExcluding]);
 
   const handleDragStart = useCallback((pieceId: number, clientX: number, clientY: number) => {
     setDrag({ pieceId, clientX, clientY });
@@ -174,13 +209,17 @@ export default function ShapeFitGame() {
     (pieceId: number, clientX: number, clientY: number) => {
       const trayPiece = state.tray.find((tp) => tp.piece.id === pieceId);
       const cell = cellForDrag(clientX, clientY);
-      if (trayPiece && cell && state.puzzle) {
-        const oriented = orientedCells(trayPiece);
-        const absCells = placeAt(oriented, cell.r, cell.c);
-        const occupiedSet = new Set(Object.keys(state.occupied));
-        const wouldFit = canPlace(state.puzzle.region, occupiedSet, absCells);
+      if (trayPiece && cell && state.puzzle && regionSet) {
+        const absTris = placeAt(orientedTris(trayPiece), cell.r, cell.c);
+        const occExcluding = occupiedExcluding(pieceId);
+        const wouldFit = canPlace(regionSet, occExcluding, absTris);
         if (wouldFit) {
-          playFound();
+          const wouldComplete = occExcluding.size + absTris.length === state.puzzle.region.length;
+          if (wouldComplete) {
+            playFanfare();
+          } else {
+            playFound();
+          }
         } else {
           playWrong();
         }
@@ -188,14 +227,14 @@ export default function ShapeFitGame() {
       }
       setDrag(null);
     },
-    [state.tray, state.puzzle, state.occupied, cellForDrag, dispatch],
+    [state.tray, state.puzzle, regionSet, cellForDrag, occupiedExcluding, dispatch],
   );
 
   if (state.phase === 'picking' || !state.difficulty || !state.puzzle) {
     return (
       <>
         <JsonLd data={SCHEMA} />
-        <DifficultyPicker onPick={handlePick} />
+        <DifficultyPicker upNextBackdrop={upNextBackdrop} onPick={handlePick} />
       </>
     );
   }
@@ -233,7 +272,7 @@ export default function ShapeFitGame() {
         />
         <PieceTray
           tray={state.tray}
-          orientedCells={orientedCells}
+          orientedTris={orientedTris}
           selectedId={state.selectedId}
           draggingId={drag?.pieceId ?? null}
           disabled={state.phase !== 'playing'}

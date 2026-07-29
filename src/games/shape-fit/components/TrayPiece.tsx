@@ -1,18 +1,19 @@
 import { useRef } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import type { Cell } from '../lib/types';
+import type { Tri } from '../lib/types';
+import { triPolygon } from '../lib/tri';
 import { blockColorHex, blockColorName } from '../palette';
 import { ensureAudioReady, playTick } from '../../../shared/audio/sounds';
 import styles from './TrayPiece.module.css';
 
-/** Pixel size of one block cell inside a tray thumbnail. */
-const CELL_PX = 18;
+/** Pixel size of one grid cell inside a tray thumbnail. */
+const CELL_PX = 28;
 
 export interface TrayPieceProps {
   pieceId: number;
   colorIndex: number;
-  /** This piece's current silhouette (normalized), from orientedCells(trayPiece). */
-  cells: Cell[];
+  /** This piece's current silhouette (normalized), from orientedTris(trayPiece). */
+  tris: Tri[];
   selected: boolean;
   isDragging: boolean;
   disabled: boolean;
@@ -25,7 +26,7 @@ export interface TrayPieceProps {
 export default function TrayPiece({
   pieceId,
   colorIndex,
-  cells,
+  tris,
   selected,
   isDragging,
   disabled,
@@ -38,13 +39,12 @@ export default function TrayPiece({
 
   let maxR = 0;
   let maxC = 0;
-  for (const cell of cells) {
-    if (cell.r > maxR) maxR = cell.r;
-    if (cell.c > maxC) maxC = cell.c;
+  for (const t of tris) {
+    if (t.r > maxR) maxR = t.r;
+    if (t.c > maxC) maxC = t.c;
   }
   const gridRows = maxR + 1;
   const gridCols = maxC + 1;
-  const filled = new Set(cells.map((cell) => `${cell.r},${cell.c}`));
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (disabled) return;
@@ -81,32 +81,31 @@ export default function TrayPiece({
       className={classNames.join(' ')}
       disabled={disabled}
       aria-pressed={selected}
-      aria-label={`${blockColorName(colorIndex)} block piece${selected ? ', selected' : ''}`}
+      aria-label={`${blockColorName(colorIndex)} piece${selected ? ', selected' : ''}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
     >
-      <div
-        className={styles.grid}
-        style={{
-          gridTemplateColumns: `repeat(${gridCols}, ${CELL_PX}px)`,
-          gridTemplateRows: `repeat(${gridRows}, ${CELL_PX}px)`,
-        }}
+      <svg
+        viewBox={`0 0 ${gridCols} ${gridRows}`}
+        width={gridCols * CELL_PX}
+        height={gridRows * CELL_PX}
+        className={styles.svg}
+        aria-hidden="true"
       >
-        {Array.from({ length: gridRows * gridCols }, (_, i) => {
-          const r = Math.floor(i / gridCols);
-          const c = i % gridCols;
-          const isBlock = filled.has(`${r},${c}`);
-          return (
-            <div
-              key={i}
-              className={isBlock ? styles.block : undefined}
-              style={{ background: isBlock ? blockColorHex(colorIndex) : 'transparent' }}
-            />
-          );
-        })}
-      </div>
+        {tris.map((t, i) => (
+          <polygon
+            key={i}
+            points={triPolygon(t)
+              .map(([x, y]) => `${x},${y}`)
+              .join(' ')}
+            style={{ fill: blockColorHex(colorIndex) }}
+            className={styles.triFill}
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </svg>
     </button>
   );
 }

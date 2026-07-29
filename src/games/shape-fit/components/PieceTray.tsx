@@ -1,11 +1,11 @@
-import type { Cell } from '../lib/types';
+import type { Tri } from '../lib/types';
 import type { TrayPiece as TrayPieceModel } from '../hooks/useShapeFit';
 import TrayPieceView from './TrayPiece';
 import styles from './PieceTray.module.css';
 
 export interface PieceTrayProps {
   tray: TrayPieceModel[];
-  orientedCells: (trayPiece: TrayPieceModel) => Cell[];
+  orientedTris: (trayPiece: TrayPieceModel) => Tri[];
   selectedId: number | null;
   draggingId: number | null;
   disabled: boolean;
@@ -18,7 +18,7 @@ export interface PieceTrayProps {
 /** The tray of not-yet-placed pieces, below the board. */
 export default function PieceTray({
   tray,
-  orientedCells,
+  orientedTris,
   selectedId,
   draggingId,
   disabled,
@@ -32,7 +32,7 @@ export default function PieceTray({
   if (unplaced.length === 0) {
     return (
       <div className={styles.tray}>
-        <span className={styles.empty}>🎉 All blocks placed!</span>
+        <span className={styles.empty}>🎉 All pieces placed!</span>
       </div>
     );
   }
@@ -44,7 +44,7 @@ export default function PieceTray({
           key={trayPiece.piece.id}
           pieceId={trayPiece.piece.id}
           colorIndex={trayPiece.piece.colorIndex}
-          cells={orientedCells(trayPiece)}
+          tris={orientedTris(trayPiece)}
           selected={selectedId === trayPiece.piece.id}
           isDragging={draggingId === trayPiece.piece.id}
           disabled={disabled}

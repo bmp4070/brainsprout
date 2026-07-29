@@ -17,6 +17,7 @@ export function getStaticRoutes(): string[] {
     '/games/bus-route',
     '/games/potion-sort',
     '/games/shape-fit',
+    '/games/math-sprout',
   ];
 }
 

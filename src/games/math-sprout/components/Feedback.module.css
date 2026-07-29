@@ -1,0 +1,15 @@
+.correct,
+.wrong {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  margin: 0;
+  text-align: center;
+}
+
+.correct {
+  color: var(--color-success);
+}
+
+.wrong {
+  color: var(--color-text);
+}

@@ -1,133 +1,138 @@
-import { canPlace, orientations } from './shapes';
-import type { Cell, Piece, Placement } from './types';
+import type { Piece, Placement, Tri } from './types';
+import { triKey } from './types';
+import { orientations, placeAt } from './tri';
 
 export interface SolveResult {
-  /** One valid tiling of the remaining region, or null if impossible. */
   solution: Placement[] | null;
-  /** false if the node budget was hit before finding/exhausting the search. */
+  /** false when the node budget was exhausted before a definitive answer. */
   exact: boolean;
 }
 
-/** Default recursion budget. Comfortable for ≤24 cells / ≤6 pieces. */
-export const DEFAULT_NODE_BUDGET = 500_000;
+const DEFAULT_NODE_BUDGET = 1_000_000;
+
+/** Region tris sorted deterministically (row, then col, then dir). */
+function sortedRegion(regionSet: ReadonlySet<string>): Tri[] {
+  const tris: Tri[] = [];
+  for (const key of regionSet) {
+    const [r, c, d] = key.split(',').map(Number);
+    tris.push({ r, c, d: d as Tri['d'] });
+  }
+  return tris.sort((a, b) => a.r - b.r || a.c - b.c || a.d - b.d);
+}
+
+interface OrientedPiece {
+  pieceId: number;
+  orientations: Tri[][];
+}
 
 /**
- * Exact-cover backtracking: tile every still-empty region cell using each
- * remaining piece exactly once. `occupied` holds already-covered cells.
- *
- * Classic pruning: at each step target the LOWEST uncovered region cell in
- * row-major order; the piece covering it must have one of its cells on that
- * target, which bounds the branching factor to (pieces × orientations × cells
- * of that orientation). Orientations are precomputed once per piece.
- *
- * Deterministic given the input ordering of `remaining` (and the orientation
- * order produced by `orientations`). Returns exact = false only when the node
- * budget was reached before the search finished.
+ * Exact-cover backtracking: tile the still-empty region tris using each
+ * remaining piece exactly once. Always targets the lowest uncovered region tri
+ * and tries every piece × orientation × translation that covers it.
  */
 export function solveRemaining(
-  region: boolean[][],
+  regionSet: ReadonlySet<string>,
   occupied: ReadonlySet<string>,
   remaining: Piece[],
   nodeBudget: number = DEFAULT_NODE_BUDGET,
 ): SolveResult {
-  const rows = region.length;
-  const cols = rows > 0 ? region[0].length : 0;
-
-  // Quick parity check: remaining piece cells must equal empty region cells.
-  let emptyCount = 0;
-  for (let r = 0; r < rows; r += 1) {
-    for (let c = 0; c < cols; c += 1) {
-      if (region[r][c] && !occupied.has(`${r},${c}`)) emptyCount += 1;
-    }
-  }
-  let pieceCells = 0;
-  for (const piece of remaining) pieceCells += piece.cells.length;
-  if (pieceCells !== emptyCount) return { solution: null, exact: true };
-
-  const orients: Cell[][][] = remaining.map((piece) => orientations(piece.cells));
-  const covered = new Set<string>(occupied);
-  const used: boolean[] = remaining.map(() => false);
-  const placements: Placement[] = [];
-
+  const region = sortedRegion(regionSet);
+  const covered = new Set(occupied);
+  const oriented: OrientedPiece[] = remaining.map((p) => ({
+    pieceId: p.id,
+    orientations: orientations(p.tris),
+  }));
+  const used = new Array<boolean>(oriented.length).fill(false);
+  const result: Placement[] = [];
   let nodes = 0;
   let budgetHit = false;
 
-  const findTarget = (): Cell | null => {
-    for (let r = 0; r < rows; r += 1) {
-      for (let c = 0; c < cols; c += 1) {
-        if (region[r][c] && !covered.has(`${r},${c}`)) return { r, c };
-      }
+  /** Lowest region tri not yet covered, or null when all are covered. */
+  function lowestUncovered(): Tri | null {
+    for (const t of region) {
+      if (!covered.has(triKey(t))) return t;
     }
     return null;
-  };
+  }
 
-  const recurse = (): boolean => {
-    nodes += 1;
-    if (nodes > nodeBudget) {
+  function search(): boolean {
+    if (budgetHit) return false;
+    if (nodes++ > nodeBudget) {
       budgetHit = true;
       return false;
     }
-    const target = findTarget();
-    if (target === null) return true;
-
-    for (let i = 0; i < remaining.length; i += 1) {
+    const target = lowestUncovered();
+    if (target === null) return true; // fully covered
+    for (let i = 0; i < oriented.length; i += 1) {
       if (used[i]) continue;
-      for (const oriented of orients[i]) {
-        for (const anchor of oriented) {
-          const offR = target.r - anchor.r;
-          const offC = target.c - anchor.c;
-          const abs = oriented.map((cell) => ({ r: cell.r + offR, c: cell.c + offC }));
-          if (!canPlace(region, covered, abs)) continue;
-
+      for (const orient of oriented[i].orientations) {
+        for (const anchor of orient) {
+          if (anchor.d !== target.d) continue;
+          const dr = target.r - anchor.r;
+          const dc = target.c - anchor.c;
+          const abs = placeAt(orient, dr, dc);
+          let fits = true;
+          for (const t of abs) {
+            const key = triKey(t);
+            if (!regionSet.has(key) || covered.has(key)) {
+              fits = false;
+              break;
+            }
+          }
+          if (!fits) continue;
+          const keys = abs.map(triKey);
+          for (const key of keys) covered.add(key);
           used[i] = true;
-          for (const cell of abs) covered.add(`${cell.r},${cell.c}`);
-          placements.push({ pieceId: remaining[i].id, cells: abs });
-
-          if (recurse()) return true;
-
-          placements.pop();
-          for (const cell of abs) covered.delete(`${cell.r},${cell.c}`);
+          result.push({ pieceId: oriented[i].pieceId, tris: abs });
+          if (search()) return true;
+          result.pop();
           used[i] = false;
+          for (const key of keys) covered.delete(key);
           if (budgetHit) return false;
         }
       }
     }
     return false;
-  };
+  }
 
-  const solved = recurse();
+  const solved = search();
+  if (solved) return { solution: result.map((p) => ({ ...p })), exact: true };
   if (budgetHit) return { solution: null, exact: false };
-  return { solution: solved ? placements.map((p) => ({ ...p })) : null, exact: true };
+  return { solution: null, exact: true };
 }
 
 /**
- * A hint placement: the first placement of some full completion (covers the
- * lowest uncovered cell). Returns null if the remaining region cannot be
- * completed (or the budget ran out).
+ * A valid placement for one remaining piece that is part of some full
+ * completion (the placement covering the lowest uncovered region tri). null if
+ * not completable.
  */
 export function hintPlacement(
-  region: boolean[][],
+  regionSet: ReadonlySet<string>,
   occupied: ReadonlySet<string>,
   remaining: Piece[],
-  nodeBudget: number = DEFAULT_NODE_BUDGET,
+  nodeBudget?: number,
 ): Placement | null {
-  const { solution } = solveRemaining(region, occupied, remaining, nodeBudget);
-  if (solution === null || solution.length === 0) return null;
-  return solution[0];
+  const { solution } = solveRemaining(regionSet, occupied, remaining, nodeBudget);
+  if (!solution) return null;
+  const region = sortedRegion(regionSet);
+  const target = region.find((t) => !occupied.has(triKey(t)));
+  if (!target) return null;
+  const targetKey = triKey(target);
+  return solution.find((p) => p.tris.some((t) => triKey(t) === targetKey)) ?? solution[0];
 }
 
 /**
- * Dead-end check: can the remaining pieces still tile the remaining region?
- * Conservative on budget exhaustion — if the search could not finish, we
- * report `true` (completable) rather than falsely flagging a dead end.
+ * Can the remaining pieces still tile the remaining region? Conservatively
+ * true when the node budget is exhausted (so we never wrongly declare a dead
+ * end).
  */
 export function isCompletable(
-  region: boolean[][],
+  regionSet: ReadonlySet<string>,
   occupied: ReadonlySet<string>,
   remaining: Piece[],
-  nodeBudget: number = DEFAULT_NODE_BUDGET,
+  nodeBudget?: number,
 ): boolean {
-  const { solution, exact } = solveRemaining(region, occupied, remaining, nodeBudget);
-  if (solution !== null) return true;
-  return !exact; // budget hit -> assume still completable
+  const { solution, exact } = solveRemaining(regionSet, occupied, remaining, nodeBudget);
+  if (solution) return true;
+  return !exact;
 }

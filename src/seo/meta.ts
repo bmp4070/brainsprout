@@ -54,10 +54,16 @@ const STATIC_META: Record<string, PageMeta> = {
     canonicalPath: '/games/potion-sort',
   },
   '/games/shape-fit': {
-    title: 'Shape Fit — Free Block Puzzle Game for Kids',
+    title: 'Shape Fit — Free Tangram Puzzle Game for Kids',
     description:
-      'Free online block-fitting puzzle for kids ages 5 to 11. Rotate and flip colorful pieces to fill every shaped outline and build spatial logic skills. No login, no ads.',
+      'Free online tangram puzzle for kids ages 5 to 11. Rotate and flip triangles, squares, and lines to fill every diamond and rhombus outline and build spatial logic skills. No login, no ads.',
     canonicalPath: '/games/shape-fit',
+  },
+  '/games/math-sprout': {
+    title: 'Math Sprout — Subtraction & Times Tables for Kids',
+    description:
+      'Free online subtraction and multiplication practice game for kids ages 5 to 11. See a visual model for every problem, tap the answer. No login, no ads.',
+    canonicalPath: '/games/math-sprout',
   },
 };
 

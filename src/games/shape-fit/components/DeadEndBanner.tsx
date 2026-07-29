@@ -13,7 +13,7 @@ export default function DeadEndBanner({ onRestart }: DeadEndBannerProps) {
   return (
     <div className={styles.banner} role="status">
       <span className={styles.message}>
-        😅 That won&apos;t fit anymore! Pick up a block and try again, or start fresh.
+        😅 That won&apos;t fit anymore! Pick up a piece or restart.
       </span>
       <div className={styles.actions}>
         <button type="button" className={styles.actionButton} onClick={onRestart}>

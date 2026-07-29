@@ -1,31 +1,40 @@
 import { forwardRef, useMemo } from 'react';
-import type { Cell, Placement, Puzzle } from '../lib/types';
-import { cellKey } from '../lib/types';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+import type { Placement, Puzzle, Tri } from '../lib/types';
+import { triKey } from '../lib/types';
+import { triPolygon } from '../lib/tri';
 import { blockColorHex, blockColorName } from '../palette';
 import styles from './Board.module.css';
 
+/** A live drag preview: the piece's oriented tris snapped to a board cell. */
 export interface BoardPreview {
-  cells: Cell[];
+  tris: Tri[];
   valid: boolean;
 }
 
 export interface BoardProps {
   puzzle: Puzzle;
-  /** cellKey -> pieceId for every currently-placed cell. */
+  /** triKey -> pieceId for every currently-covered region tri. */
   occupied: Record<string, number>;
   hint: Placement | null;
-  /** Live drag preview (ghost snapped to grid), or null when not dragging. */
   preview: BoardPreview | null;
   disabled: boolean;
   onPickup: (pieceId: number) => void;
 }
 
+function polyPoints(tri: Tri): string {
+  return triPolygon(tri)
+    .map(([x, y]) => `${x},${y}`)
+    .join(' ');
+}
+
 /**
- * The shaped outline the kid fills in. Forwards its root ref so the game
- * screen can read getBoundingClientRect() to convert drag pointer positions
- * into board cell coordinates.
+ * The backdrop silhouette the kid fills in, rendered as an SVG of atomic
+ * triangles (viewBox 0 0 cols rows, 1 unit per grid cell — see lib/tri.ts).
+ * Forwards its ref to the <svg> root so the game screen can read
+ * getBoundingClientRect() to convert drag pointer positions into cells.
  */
-const Board = forwardRef<HTMLDivElement, BoardProps>(function Board(
+const Board = forwardRef<SVGSVGElement, BoardProps>(function Board(
   { puzzle, occupied, hint, preview, disabled, onPickup },
   ref,
 ) {
@@ -38,75 +47,99 @@ const Board = forwardRef<HTMLDivElement, BoardProps>(function Board(
   }, [pieces]);
 
   const hintKeys = useMemo(() => {
-    if (!hint) return null;
-    return new Set(hint.cells.map(cellKey));
+    if (!hint) return new Set<string>();
+    return new Set(hint.tris.map(triKey));
   }, [hint]);
 
-  const previewMap = useMemo(() => {
-    if (!preview) return null;
-    const map = new Map<string, boolean>();
-    for (const cell of preview.cells) map.set(cellKey(cell), preview.valid);
-    return map;
-  }, [preview]);
-
-  const cells: { r: number; c: number }[] = [];
-  for (let r = 0; r < rows; r += 1) {
-    for (let c = 0; c < cols; c += 1) {
-      cells.push({ r, c });
+  // The backdrop always contributes all 4 atomic tris of every cell it
+  // covers, so the silhouette's outer boundary is exactly the cell-level
+  // perimeter — same edge math as a plain square-grid region.
+  const perimeterSegments = useMemo(() => {
+    const cellSet = new Set(region.map((t) => `${t.r},${t.c}`));
+    const segments: [number, number, number, number][] = [];
+    for (const key of cellSet) {
+      const [r, c] = key.split(',').map(Number);
+      if (!cellSet.has(`${r - 1},${c}`)) segments.push([c, r, c + 1, r]); // top
+      if (!cellSet.has(`${r},${c + 1}`)) segments.push([c + 1, r, c + 1, r + 1]); // right
+      if (!cellSet.has(`${r + 1},${c}`)) segments.push([c, r + 1, c + 1, r + 1]); // bottom
+      if (!cellSet.has(`${r},${c - 1}`)) segments.push([c, r, c, r + 1]); // left
     }
-  }
+    return segments;
+  }, [region]);
+
+  const handlePickupKey = (event: ReactKeyboardEvent<SVGPolygonElement>, pieceId: number) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    onPickup(pieceId);
+  };
 
   return (
     <div
-      ref={ref}
-      className={styles.board}
-      style={
-        {
-          '--board-aspect': cols / rows,
-          '--cols': cols,
-          '--rows': rows,
-        } as React.CSSProperties
-      }
-      role="grid"
-      aria-label="Shape outline"
+      className={styles.wrap}
+      style={{ '--board-aspect': cols / rows } as React.CSSProperties}
     >
-      {cells.map(({ r, c }) => {
-        const key = cellKey({ r, c });
-        if (!region[r]?.[c]) {
-          return <div key={key} className={`${styles.cell} ${styles.outside}`} aria-hidden="true" />;
-        }
-        const pieceId = occupied[key];
-        const isFilled = pieceId !== undefined;
-        const colorIndex = isFilled ? colorByPieceId.get(pieceId) ?? 0 : -1;
-        const isHinted = hintKeys?.has(key) ?? false;
-        const previewValid = previewMap?.get(key);
+      <svg
+        ref={ref}
+        className={styles.board}
+        viewBox={`0 0 ${cols} ${rows}`}
+        role="img"
+        aria-label="Shape outline to fill"
+      >
+        {region.map((t) => {
+          const key = triKey(t);
+          const pieceId = occupied[key];
+          const isFilled = pieceId !== undefined;
+          const colorIndex = isFilled ? colorByPieceId.get(pieceId) ?? 0 : -1;
+          const isHinted = hintKeys.has(key);
 
-        const classNames = [styles.cell, isFilled ? styles.filled : styles.slot];
-        if (isHinted) classNames.push(styles.hint);
-        if (previewValid === true) classNames.push(styles.previewValid);
-        if (previewValid === false) classNames.push(styles.previewInvalid);
+          const classNames = [styles.tri, isFilled ? styles.filled : styles.slot];
+          if (isHinted) classNames.push(styles.hintTri);
 
-        if (!isFilled) {
           return (
-            <div key={key} className={classNames.join(' ')} data-cell={key}>
-              {/* empty slot, waiting for a piece */}
-            </div>
+            <polygon
+              key={key}
+              points={polyPoints(t)}
+              className={classNames.join(' ')}
+              style={isFilled ? { fill: blockColorHex(colorIndex) } : undefined}
+              vectorEffect="non-scaling-stroke"
+              tabIndex={isFilled && !disabled ? 0 : undefined}
+              role={isFilled ? 'button' : undefined}
+              aria-label={
+                isFilled ? `${blockColorName(colorIndex)} piece, tap to pick up` : undefined
+              }
+              onClick={isFilled && !disabled ? () => onPickup(pieceId) : undefined}
+              onKeyDown={
+                isFilled && !disabled ? (event) => handlePickupKey(event, pieceId) : undefined
+              }
+            />
           );
-        }
+        })}
 
-        return (
-          <button
-            key={key}
-            type="button"
-            className={classNames.join(' ')}
-            style={{ background: blockColorHex(colorIndex) }}
-            data-cell={key}
-            disabled={disabled}
-            aria-label={`${blockColorName(colorIndex)} block, tap to pick up`}
-            onClick={() => onPickup(pieceId)}
+        {perimeterSegments.map(([x1, y1, x2, y2], i) => (
+          <line
+            key={i}
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
+            className={styles.perimeter}
+            vectorEffect="non-scaling-stroke"
           />
-        );
-      })}
+        ))}
+
+        {preview && (
+          <g className={preview.valid ? styles.previewValid : styles.previewInvalid}>
+            {preview.tris.map((t, i) => (
+              <polygon
+                key={i}
+                points={polyPoints(t)}
+                vectorEffect="non-scaling-stroke"
+                aria-hidden="true"
+              />
+            ))}
+          </g>
+        )}
+      </svg>
     </div>
   );
 });
