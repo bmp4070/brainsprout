@@ -33,6 +33,7 @@ const GAME_ROUTES = new Set([
   '/games/potion-sort',
   '/games/shape-fit',
   '/games/math-sprout',
+  '/games/word-wheel',
 ]);
 
 async function loadSsrEntry() {
@@ -144,6 +145,7 @@ async function main() {
         '/games/potion-sort': 'BrainSprout Potion Sort',
         '/games/shape-fit': 'BrainSprout Shape Fit',
         '/games/math-sprout': 'BrainSprout Math Sprout',
+        '/games/word-wheel': 'BrainSprout Word Wheel',
       };
       const schema = gameSchema({
         name: gameNames[route] ?? 'BrainSprout Game',

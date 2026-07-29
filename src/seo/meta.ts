@@ -65,6 +65,12 @@ const STATIC_META: Record<string, PageMeta> = {
       'Free online subtraction and multiplication practice game for kids ages 5 to 11. See a visual model for every problem, tap the answer. No login, no ads.',
     canonicalPath: '/games/math-sprout',
   },
+  '/games/word-wheel': {
+    title: 'Word Wheel — Free Anagram Word Game for Kids',
+    description:
+      'Free online anagram word game for kids ages 5 to 11. Spell words from a circle of letters to fill every slot and build vocabulary skills. No login, no ads.',
+    canonicalPath: '/games/word-wheel',
+  },
 };
 
 /** Hand-written, unique per-theme descriptions (kid-facing, character names help search). */

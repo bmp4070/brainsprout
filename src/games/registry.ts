@@ -67,4 +67,12 @@ export const games: GameMeta[] = [
     description: 'Practice subtraction and multiplication — see the numbers, tap the answer!',
     Component: lazy(() => import('./math-sprout/MathSproutGame')),
   },
+  {
+    id: 'word-wheel',
+    title: 'Word Wheel',
+    emoji: '🎡',
+    path: '/games/word-wheel',
+    description: 'Spin the letters and find every hidden word!',
+    Component: lazy(() => import('./word-wheel/WordWheelGame')),
+  },
 ];
