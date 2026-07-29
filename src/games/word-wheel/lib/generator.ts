@@ -4,10 +4,12 @@ import type { DifficultyConfig, Puzzle } from './types';
 
 const A_CODE = 'a'.charCodeAt(0);
 
+/** Max 3-letter words allowed in any single puzzle. */
+const MAX_THREE_LETTER_WORDS = 3;
+
 /**
  * How many base-word candidates we probe before giving up on an exact fit and
- * falling back to the closest one. Bounded so generation never runs long and
- * never loops forever.
+ * falling back to the closest one. Bounded so generation never runs long.
  */
 const MAX_CANDIDATE_SCAN = 400;
 
@@ -43,7 +45,6 @@ function getIndex(): WordIndex {
       m |= 1 << c;
     }
     mask[i] = m;
-    // popcount of m == length only when all letters are distinct.
     let bits = 0;
     let mm = m;
     while (mm !== 0) {
@@ -79,10 +80,7 @@ function rackVector(word: string): { vec: Int8Array; mask: number } {
 }
 
 /**
- * Collects every dictionary word (length >= MIN_WORD_LEN) spellable from the
- * given rack letters, using the precomputed index. The rack's own base word is
- * naturally included. Fast path: a word is skipped instantly unless its letter
- * set is a subset of the rack's; only then is multiplicity checked.
+ * Collects dictionary words spellable from the given rack letters.
  */
 function collectTargets(idx: WordIndex, rackVec: Int8Array, rackMask: number): string[] {
   const notRack = ~rackMask;
@@ -90,8 +88,7 @@ function collectTargets(idx: WordIndex, rackVec: Int8Array, rackMask: number): s
   const n = WORDS.length;
   for (let i = 0; i < n; i++) {
     if (idx.len[i] < MIN_WORD_LEN) continue;
-    if ((idx.mask[i] & notRack) !== 0) continue; // needs a letter the rack lacks
-    // Subset by letter set; verify multiplicity.
+    if ((idx.mask[i] & notRack) !== 0) continue;
     const base = i * 26;
     let ok = true;
     let m = idx.mask[i];
@@ -108,6 +105,25 @@ function collectTargets(idx: WordIndex, rackVec: Int8Array, rackMask: number): s
   return out;
 }
 
+/**
+ * Caps the number of 3-letter words to at most MAX_THREE_LETTER_WORDS (3),
+ * using the PRNG to select 3 diverse candidates when there are more.
+ */
+function limitThreeLetterWords(targets: string[], baseWord: string, rng: () => number): string[] {
+  const threeLetter = targets.filter((w) => w.length === 3 && w !== baseWord);
+  const otherWords = targets.filter((w) => w.length !== 3 || w === baseWord);
+
+  if (threeLetter.length <= MAX_THREE_LETTER_WORDS) {
+    return targets;
+  }
+
+  const shuffled = [...threeLetter];
+  shuffle(rng, shuffled);
+  const selected = shuffled.slice(0, MAX_THREE_LETTER_WORDS);
+
+  return [...otherWords, ...selected];
+}
+
 /** Orders words by length ascending, then alphabetically. */
 function byLengthThenAlpha(a: string, b: string): number {
   if (a.length !== b.length) return a.length - b.length;
@@ -116,21 +132,12 @@ function byLengthThenAlpha(a: string, b: string): number {
 
 /**
  * Generates a deterministic Word Wheel puzzle for the given difficulty + seed.
- *
- * Never throws and never loops unbounded: it probes at most
- * MAX_CANDIDATE_SCAN base-word candidates (distinct-letter racks preferred,
- * since repeats confuse kids). The first candidate whose spellable-target count
- * lands in [minWords, maxWords] wins. If none does within the budget, the
- * candidate whose count is CLOSEST to that range is used; a target set that
- * still exceeds maxWords is trimmed to the base word plus the shortest words,
- * keeping the board kid-sized.
  */
 export function generatePuzzle(difficulty: DifficultyConfig, seed: number): Puzzle {
   const rng = mulberry32(seed);
   const idx = getIndex();
   const { baseLenMin, baseLenMax, minWords, maxWords } = difficulty;
 
-  // Candidate base words in the length band, distinct-letter racks first.
   const distinctCandidates: string[] = [];
   const repeatedCandidates: string[] = [];
   for (let i = 0; i < WORDS.length; i++) {
@@ -153,7 +160,8 @@ export function generatePuzzle(difficulty: DifficultyConfig, seed: number): Puzz
   for (let i = 0; i < scanLimit; i++) {
     const base = candidates[i];
     const { vec, mask } = rackVector(base);
-    const targets = collectTargets(idx, vec, mask);
+    const rawTargets = collectTargets(idx, vec, mask);
+    const targets = limitThreeLetterWords(rawTargets, base, rng);
     const count = targets.length;
 
     if (count >= minWords && count <= maxWords) {
@@ -170,21 +178,18 @@ export function generatePuzzle(difficulty: DifficultyConfig, seed: number): Puzz
     }
   }
 
-  // Fallback: no exact fit within budget -> use the closest candidate.
   let baseWord = chosenBase;
   let targets = chosenTargets;
   if (baseWord === null || targets === null) {
-    // bestBase is always set when scanLimit > 0; guard defensively anyway.
     baseWord = bestBase ?? candidates[0] ?? WORDS[0];
     targets =
       bestTargets ??
       (() => {
         const { vec, mask } = rackVector(baseWord as string);
-        return collectTargets(idx, vec, mask);
+        return limitThreeLetterWords(collectTargets(idx, vec, mask), baseWord as string, rng);
       })();
   }
 
-  // Ensure the base word is present, then trim overflow to base + shortest.
   const targetSet = new Set(targets);
   targetSet.add(baseWord);
   if (targetSet.size > maxWords) {
@@ -201,7 +206,6 @@ export function generatePuzzle(difficulty: DifficultyConfig, seed: number): Puzz
 
   const words = targets.sort(byLengthThenAlpha);
 
-  // Seeded-shuffled uppercase rack.
   const letters = baseWord.toUpperCase().split('');
   shuffle(rng, letters);
 

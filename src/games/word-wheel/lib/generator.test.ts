@@ -13,12 +13,30 @@ describe('word-wheel generator', () => {
       expect(puzzle.letters.length).toBeLessThanOrEqual(difficulty.baseLenMax);
       expect(puzzle.words.length).toBeGreaterThan(0);
 
+      // Verify 3-letter words are capped at 3 max
+      const threeLetterCount = puzzle.words.filter((w) => w.length === 3).length;
+      expect(threeLetterCount).toBeLessThanOrEqual(3);
+
       // Verify every target word is spellable from the rack
       for (const word of puzzle.words) {
         expect(canMake(word, puzzle.letters)).toBe(true);
       }
     }
   });
+
+  it(
+    'limits 3-letter words to at most 3 across multiple seeds',
+    () => {
+      for (let seed = 1; seed <= 5; seed++) {
+        for (const diffKey of ['easy', 'medium', 'hard'] as const) {
+          const puzzle = generatePuzzle(DIFFICULTIES[diffKey], seed);
+          const threeLetterWords = puzzle.words.filter((w) => w.length === 3);
+          expect(threeLetterWords.length).toBeLessThanOrEqual(3);
+        }
+      }
+    },
+    { timeout: 15000 },
+  );
 
   it('is deterministic for the same seed and difficulty', () => {
     const p1 = generatePuzzle(DIFFICULTIES.medium, 9999);
