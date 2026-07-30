@@ -77,6 +77,12 @@ const STATIC_META: Record<string, PageMeta> = {
       'Free online maze game for kids ages 5 to 11. Guide a character through winding passages to reach the goal and build problem-solving skills. No login, no ads.',
     canonicalPath: '/games/maze',
   },
+  '/games/spot-difference': {
+    title: 'Spot the Difference — Free Game for Kids',
+    description:
+      'Free online spot-the-difference game for kids ages 5 to 11. Compare two pictures side by side and tap every hidden difference you can find. No login, no ads.',
+    canonicalPath: '/games/spot-difference',
+  },
 };
 
 /** Hand-written, unique per-theme descriptions (kid-facing, character names help search). */

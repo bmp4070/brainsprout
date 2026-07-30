@@ -35,6 +35,7 @@ const GAME_ROUTES = new Set([
   '/games/math-sprout',
   '/games/word-wheel',
   '/games/maze',
+  '/games/spot-difference',
 ]);
 
 async function loadSsrEntry() {
@@ -148,6 +149,7 @@ async function main() {
         '/games/math-sprout': 'BrainSprout Math Sprout',
         '/games/word-wheel': 'BrainSprout Word Wheel',
         '/games/maze': 'BrainSprout Maze',
+        '/games/spot-difference': 'BrainSprout Spot the Difference',
       };
       const schema = gameSchema({
         name: gameNames[route] ?? 'BrainSprout Game',

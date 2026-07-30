@@ -83,4 +83,12 @@ export const games: GameMeta[] = [
     description: 'Find your way through the maze to the goal!',
     Component: lazy(() => import('./maze/MazeGame')),
   },
+  {
+    id: 'spot-difference',
+    title: 'Spot the Difference',
+    emoji: '👀',
+    path: '/games/spot-difference',
+    description: "Find what's different between the two pictures!",
+    Component: lazy(() => import('./spot-difference/SpotDifferenceGame')),
+  },
 ];

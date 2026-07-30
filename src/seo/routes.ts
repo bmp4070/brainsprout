@@ -20,6 +20,7 @@ export function getStaticRoutes(): string[] {
     '/games/math-sprout',
     '/games/word-wheel',
     '/games/maze',
+    '/games/spot-difference',
   ];
 }
 
