@@ -19,6 +19,7 @@ export function getStaticRoutes(): string[] {
     '/games/shape-fit',
     '/games/math-sprout',
     '/games/word-wheel',
+    '/games/maze',
   ];
 }
 

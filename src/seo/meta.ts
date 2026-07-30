@@ -71,6 +71,12 @@ const STATIC_META: Record<string, PageMeta> = {
       'Free online anagram word game for kids ages 5 to 11. Spell words from a circle of letters to fill every slot and build vocabulary skills. No login, no ads.',
     canonicalPath: '/games/word-wheel',
   },
+  '/games/maze': {
+    title: 'Maze — Free Maze Puzzle Game for Kids',
+    description:
+      'Free online maze game for kids ages 5 to 11. Guide a character through winding passages to reach the goal and build problem-solving skills. No login, no ads.',
+    canonicalPath: '/games/maze',
+  },
 };
 
 /** Hand-written, unique per-theme descriptions (kid-facing, character names help search). */

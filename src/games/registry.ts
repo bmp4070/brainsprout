@@ -75,4 +75,12 @@ export const games: GameMeta[] = [
     description: 'Spin the letters and find every hidden word!',
     Component: lazy(() => import('./word-wheel/WordWheelGame')),
   },
+  {
+    id: 'maze',
+    title: 'Maze',
+    emoji: '🧭',
+    path: '/games/maze',
+    description: 'Find your way through the maze to the goal!',
+    Component: lazy(() => import('./maze/MazeGame')),
+  },
 ];

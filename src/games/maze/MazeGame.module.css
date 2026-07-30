@@ -1,0 +1,16 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md) var(--space-lg);
+  flex: 1;
+  min-height: 0;
+}
+
+.rulesReminder {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+  text-align: center;
+}
