@@ -83,6 +83,12 @@ const STATIC_META: Record<string, PageMeta> = {
       'Free online spot-the-difference game for kids ages 5 to 11. Compare two pictures side by side and tap every hidden difference you can find. No login, no ads.',
     canonicalPath: '/games/spot-difference',
   },
+  '/games/memory-belt': {
+    title: 'Memory Belt — Free Memory Game for Kids',
+    description:
+      'Free online memory game for kids ages 5 to 11. Study a tray of items, then catch the ones you remember as they ride past on a conveyor belt. No login, no ads.',
+    canonicalPath: '/games/memory-belt',
+  },
 };
 
 /** Hand-written, unique per-theme descriptions (kid-facing, character names help search). */

@@ -21,6 +21,7 @@ export function getStaticRoutes(): string[] {
     '/games/word-wheel',
     '/games/maze',
     '/games/spot-difference',
+    '/games/memory-belt',
   ];
 }
 

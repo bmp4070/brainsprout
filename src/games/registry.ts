@@ -91,4 +91,12 @@ export const games: GameMeta[] = [
     description: "Find what's different between the two pictures!",
     Component: lazy(() => import('./spot-difference/SpotDifferenceGame')),
   },
+  {
+    id: 'memory-belt',
+    title: 'Memory Belt',
+    emoji: '🧠',
+    path: '/games/memory-belt',
+    description: 'Memorize the items, then catch them on the conveyor belt!',
+    Component: lazy(() => import('./memory-belt/MemoryBeltGame')),
+  },
 ];
