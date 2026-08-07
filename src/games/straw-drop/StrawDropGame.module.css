@@ -1,0 +1,9 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md) var(--space-xl);
+  max-width: 800px;
+  margin: 0 auto;
+}

@@ -95,6 +95,12 @@ const STATIC_META: Record<string, PageMeta> = {
       'Free online word game for kids ages 5 to 11. Drag across touching letters in the grid to spell as many hidden words as you can find. No login, no ads.',
     canonicalPath: '/games/word-hunt',
   },
+  '/games/straw-drop': {
+    title: 'Straw Drop — Free Timing Game for Kids',
+    description:
+      'Free online timing game for kids ages 5 to 11. Watch the bottles roll by on the conveyor belt and press space or tap to drop the straw into each one. No login, no ads.',
+    canonicalPath: '/games/straw-drop',
+  },
 };
 
 /** Hand-written, unique per-theme descriptions (kid-facing, character names help search). */

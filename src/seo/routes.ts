@@ -23,6 +23,7 @@ export function getStaticRoutes(): string[] {
     '/games/spot-difference',
     '/games/memory-belt',
     '/games/word-hunt',
+    '/games/straw-drop',
   ];
 }
 

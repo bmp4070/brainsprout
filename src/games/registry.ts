@@ -107,4 +107,12 @@ export const games: GameMeta[] = [
     description: 'Drag across touching letters to spell as many words as you can!',
     Component: lazy(() => import('./word-hunt/WordHuntGame')),
   },
+  {
+    id: 'straw-drop',
+    title: 'Straw Drop',
+    emoji: '🥤',
+    path: '/games/straw-drop',
+    description: 'Time your tap to drop the straw into the bottles on the belt!',
+    Component: lazy(() => import('./straw-drop/StrawDropGame')),
+  },
 ];
