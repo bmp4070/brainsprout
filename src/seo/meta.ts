@@ -59,11 +59,11 @@ const STATIC_META: Record<string, PageMeta> = {
       'Free online tangram puzzle for kids ages 5 to 11. Rotate and flip triangles, squares, and lines to fill every diamond and rhombus outline and build spatial logic skills. No login, no ads.',
     canonicalPath: '/games/shape-fit',
   },
-  '/games/math-sprout': {
-    title: 'Math Sprout — Subtraction & Times Tables for Kids',
+  '/games/math-crossword': {
+    title: 'Math Crossword — Subtraction & Times Tables for Kids',
     description:
-      'Free online subtraction and multiplication practice game for kids ages 5 to 11. See a visual model for every problem, tap the answer. No login, no ads.',
-    canonicalPath: '/games/math-sprout',
+      'Free online math crossword for kids ages 5 to 11. Fill the missing numbers so every row and column is a true subtraction or multiplication equation. No login, no ads.',
+    canonicalPath: '/games/math-crossword',
   },
   '/games/word-wheel': {
     title: 'Word Wheel — Free Anagram Word Game for Kids',
@@ -88,6 +88,12 @@ const STATIC_META: Record<string, PageMeta> = {
     description:
       'Free online memory game for kids ages 5 to 11. Study a tray of items, then catch the ones you remember as they ride past on a conveyor belt. No login, no ads.',
     canonicalPath: '/games/memory-belt',
+  },
+  '/games/word-hunt': {
+    title: 'Word Hunt — Free Word Game for Kids',
+    description:
+      'Free online word game for kids ages 5 to 11. Drag across touching letters in the grid to spell as many hidden words as you can find. No login, no ads.',
+    canonicalPath: '/games/word-hunt',
   },
 };
 

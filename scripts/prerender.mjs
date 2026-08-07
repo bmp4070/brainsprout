@@ -32,11 +32,12 @@ const GAME_ROUTES = new Set([
   '/games/bus-route',
   '/games/potion-sort',
   '/games/shape-fit',
-  '/games/math-sprout',
+  '/games/math-crossword',
   '/games/word-wheel',
   '/games/maze',
   '/games/spot-difference',
   '/games/memory-belt',
+  '/games/word-hunt',
 ]);
 
 async function loadSsrEntry() {
@@ -147,11 +148,12 @@ async function main() {
         '/games/bus-route': 'BrainSprout School Bus Route',
         '/games/potion-sort': 'BrainSprout Potion Sort',
         '/games/shape-fit': 'BrainSprout Shape Fit',
-        '/games/math-sprout': 'BrainSprout Math Sprout',
+        '/games/math-crossword': 'BrainSprout Math Crossword',
         '/games/word-wheel': 'BrainSprout Word Wheel',
         '/games/maze': 'BrainSprout Maze',
         '/games/spot-difference': 'BrainSprout Spot the Difference',
         '/games/memory-belt': 'BrainSprout Memory Belt',
+        '/games/word-hunt': 'BrainSprout Word Hunt',
       };
       const schema = gameSchema({
         name: gameNames[route] ?? 'BrainSprout Game',

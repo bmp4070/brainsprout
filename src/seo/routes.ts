@@ -17,11 +17,12 @@ export function getStaticRoutes(): string[] {
     '/games/bus-route',
     '/games/potion-sort',
     '/games/shape-fit',
-    '/games/math-sprout',
+    '/games/math-crossword',
     '/games/word-wheel',
     '/games/maze',
     '/games/spot-difference',
     '/games/memory-belt',
+    '/games/word-hunt',
   ];
 }
 

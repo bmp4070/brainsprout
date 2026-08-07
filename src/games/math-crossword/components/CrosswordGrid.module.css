@@ -1,0 +1,90 @@
+.grid {
+  --board: min(92vw, 60vh, 460px);
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 5), 1fr);
+  gap: calc(var(--board) / var(--cols, 5) * 0.06);
+  width: var(--board);
+  aspect-ratio: 1;
+  padding: calc(var(--board) / var(--cols, 5) * 0.14);
+  background: var(--color-bg-alt);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  box-sizing: border-box;
+}
+
+.grid > * {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Scale the glyph to the cell so 2-digit numbers fit at every board size. */
+  font-size: calc(var(--board) / var(--cols, 5) * 0.42);
+  font-weight: 800;
+  border-radius: calc(var(--board) / var(--cols, 5) * 0.12);
+  line-height: 1;
+}
+
+.empty {
+  background: transparent;
+}
+
+.op {
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.given {
+  background: var(--color-bg);
+  border: 3px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.num {
+  font-family: var(--font-family);
+}
+
+.blank {
+  border: 3px dashed var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg));
+  color: var(--color-primary-dark);
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.blank:hover {
+  transform: scale(1.05);
+}
+
+.active {
+  border-style: solid;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 35%, transparent);
+  animation: blank-pulse 1100ms ease-in-out infinite;
+}
+
+.filled {
+  background: var(--color-success);
+  border: 3px solid var(--color-success);
+  color: #fff;
+  animation: pop 300ms ease;
+}
+
+@keyframes blank-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 35%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--color-primary) 18%, transparent);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.7);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

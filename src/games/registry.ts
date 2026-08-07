@@ -60,12 +60,12 @@ export const games: GameMeta[] = [
     Component: lazy(() => import('./shape-fit/ShapeFitGame')),
   },
   {
-    id: 'math-sprout',
-    title: 'Math Sprout',
-    emoji: '🧮',
-    path: '/games/math-sprout',
-    description: 'Practice subtraction and multiplication — see the numbers, tap the answer!',
-    Component: lazy(() => import('./math-sprout/MathSproutGame')),
+    id: 'math-crossword',
+    title: 'Math Crossword',
+    emoji: '➗',
+    path: '/games/math-crossword',
+    description: 'Fill the missing numbers so every row and column is a true equation!',
+    Component: lazy(() => import('./math-crossword/MathCrosswordGame')),
   },
   {
     id: 'word-wheel',
@@ -98,5 +98,13 @@ export const games: GameMeta[] = [
     path: '/games/memory-belt',
     description: 'Memorize the items, then catch them on the conveyor belt!',
     Component: lazy(() => import('./memory-belt/MemoryBeltGame')),
+  },
+  {
+    id: 'word-hunt',
+    title: 'Word Hunt',
+    emoji: '🔤',
+    path: '/games/word-hunt',
+    description: 'Drag across touching letters to spell as many words as you can!',
+    Component: lazy(() => import('./word-hunt/WordHuntGame')),
   },
 ];
